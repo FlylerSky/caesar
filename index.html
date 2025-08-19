@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Công cụ mã hóa Caesar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+  <div class="bg-white shadow-xl rounded-2xl p-6 w-full max-w-2xl">
+    <h1 class="text-2xl font-bold text-center mb-6">Công cụ Mã hóa / Giải mã Caesar</h1>
+
+    <!-- Văn bản gốc -->
+    <label class="block mb-2 font-semibold">Văn bản gốc:</label>
+    <textarea id="inputText" class="w-full border rounded-xl p-3 mb-4 focus:ring focus:ring-blue-300" rows="4" placeholder="Nhập văn bản ở đây..."></textarea>
+
+    <!-- Khóa -->
+    <label class="block mb-2 font-semibold">Khóa (Shift):</label>
+    <input id="shiftKey" type="number" min="1" max="25" value="3"
+      class="w-24 border rounded-xl p-2 mb-4 focus:ring focus:ring-blue-300" />
+
+    <!-- Các nút điều khiển -->
+    <div class="flex gap-4 mb-4">
+      <button onclick="encrypt()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl shadow">Mã hóa</button>
+      <button onclick="decrypt()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl shadow">Giải mã</button>
+    </div>
+
+    <!-- Kết quả -->
+    <label class="block mb-2 font-semibold">Kết quả:</label>
+    <div class="relative">
+      <textarea id="outputText" class="w-full border rounded-xl p-3 pr-12 mb-2 focus:ring focus:ring-blue-300" rows="4" readonly></textarea>
+      <button onclick="copyResult()" 
+        class="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 text-sm px-2 py-1 rounded">
+        Copy
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Bảng chữ cái tùy biến (có thể sửa theo nhu cầu)
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    // Hàm Mã hóa
+    function encrypt() {
+      const text = document.getElementById("inputText").value;
+      let shift = parseInt(document.getElementById("shiftKey").value);
+      let result = "";
+
+      for (let char of text) {
+        let upperChar = char.toUpperCase();
+        if (alphabet.includes(upperChar)) {
+          let index = (alphabet.indexOf(upperChar) + shift) % alphabet.length;
+          let newChar = alphabet[index];
+          // Giữ nguyên hoa/thường
+          result += (char === char.toUpperCase()) ? newChar : newChar.toLowerCase();
+        } else {
+          result += char;
+        }
+      }
+      document.getElementById("outputText").value = result;
+    }
+
+    // Hàm Giải mã
+    function decrypt() {
+      const text = document.getElementById("inputText").value;
+      let shift = parseInt(document.getElementById("shiftKey").value);
+      let result = "";
+
+      for (let char of text) {
+        let upperChar = char.toUpperCase();
+        if (alphabet.includes(upperChar)) {
+          let index = (alphabet.indexOf(upperChar) - shift + alphabet.length) % alphabet.length;
+          let newChar = alphabet[index];
+          result += (char === char.toUpperCase()) ? newChar : newChar.toLowerCase();
+        } else {
+          result += char;
+        }
+      }
+      document.getElementById("outputText").value = result;
+    }
+
+    // Hàm Copy
+    function copyResult() {
+      const output = document.getElementById("outputText");
+      output.select();
+      document.execCommand("copy");
+      alert("Đã copy kết quả!");
+    }
+  </script>
+</body>
+</html>
