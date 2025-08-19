@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công cụ Mã hóa/Giải mã Caesar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Mã hóa/Giải mã Caesar</h2>
+        
+        <div class="mb-4">
+            <textarea id="inputText" class="w-full h-32 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập văn bản hoặc số..."></textarea>
+        </div>
+        
+        <div class="mb-6 flex items-center justify-center gap-4">
+            <label for="key" class="text-gray-700 font-medium">Khóa K:</label>
+            <input type="number" id="key" value="3" min="0" class="w-20 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        
+        <div class="flex justify-center gap-4 mb-6">
+            <button onclick="encrypt()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">Mã hóa</button>
+            <button onclick="decrypt()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-200">Giải mã</button>
+        </div>
+        
+        <div class="relative">
+            <textarea id="outputText" class="w-full h-32 p-4 border border-gray-300 rounded-lg bg-gray-50" placeholder="Kết quả..." readonly></textarea>
+            <button class="absolute bottom-2 right-2 bg-gray-700 text-white text-sm px-3 py-1 rounded-md hover:bg-gray-800 transition duration-200" onclick="copyResult()">Copy</button>
+        </div>
+        <h3>version: 2.110525</h3>
+        <p>Bổ sung: Mã hóa số</p>
+    </div>
+
+    <script>
+        function caesarCipher(text, key, encrypt = true) {
+            key = encrypt ? key : -key;
+            return text
+                .split('')
+                .map(char => {
+                    if (char.match(/[a-zA-Z]/)) {
+                        // Xử lý chữ cái
+                        const isUpperCase = char === char.toUpperCase();
+                        const base = isUpperCase ? 65 : 97;
+                        let code = char.charCodeAt(0) - base;
+                        code = (code + key + 26) % 26;
+                        return String.fromCharCode(code + base);
+                    } else if (char.match(/[0-9]/)) {
+                        // Xử lý số
+                        let num = parseInt(char);
+                        num = (num + key + 10) % 10;
+                        return num.toString();
+                    }
+                    return char;
+                })
+                .join('');
+        }
+
+        function encrypt() {
+            const inputText = document.getElementById('inputText').value;
+            const key = parseInt(document.getElementById('key').value);
+            const result = caesarCipher(inputText, key, true);
+            document.getElementById('outputText').value = result;
+        }
+
+        function decrypt() {
+            const inputText = document.getElementById('inputText').value;
+            const key = parseInt(document.getElementById('key').value);
+            const result = caesarCipher(inputText, key, false);
+            document.getElementById('outputText').value = result;
+        }
+
+        function copyResult() {
+            const outputText = document.getElementById('outputText');
+            outputText.select();
+            document.execCommand('copy');
+            alert('Đã sao chép kết quả!');
+        }
+    </script>
+</body>
+</html>
