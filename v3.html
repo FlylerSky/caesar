@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Caesar Cracker — Dò mã Caesar tự động</title>
+  <!-- Tailwind CDN (Play CDN, cho dev nhanh) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen p-6">
+  <div class="max-w-4xl mx-auto">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Caesar Cracker — Dò mã Caesar tự động</h1>
+      <p class="text-sm text-slate-600">Nhập văn bản được mã hóa, nhấn <span class="font-medium">Crack</span> để máy dò shift tốt nhất bằng phân tích tần suất + kiểm tra từ.</p>
+    </header>
+
+    <main class="grid grid-cols-1 gap-6">
+      <section class="bg-white p-4 rounded-lg shadow-sm">
+        <label class="block text-sm font-medium mb-2">Văn bản (mã hóa)</label>
+        <textarea id="input" rows="6" class="w-full border rounded p-3 text-sm" placeholder="Dán văn bản mã Caesar vào đây..."></textarea>
+
+        <div class="mt-3 flex gap-2">
+          <button id="crackBtn" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">Crack tự động</button>
+          <button id="bruteBtn" class="px-4 py-2 bg-slate-200 rounded">Thử tất cả shifts</button>
+          <button id="clearBtn" class="px-4 py-2 bg-rose-200 text-rose-800 rounded">Xóa</button>
+        </div>
+
+        <div class="mt-3 flex items-center gap-3 text-sm text-slate-600">
+          <label class="flex items-center gap-2"><input id="onlyLetters" type="checkbox" checked class="accent-indigo-600"> Chỉ dịch các chữ A-Z / a-z</label>
+          <label class="flex items-center gap-2"><input id="useVietnamese" type="checkbox" class="accent-indigo-600"> Ưu tiên tiếng Việt</label>
+        </div>
+      </section>
+
+      <section class="bg-white p-4 rounded-lg shadow-sm">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-medium">Kết quả đề xuất</h2>
+          <div class="text-sm text-slate-500">Top đề xuất được sắp theo điểm</div>
+        </div>
+
+        <div id="results" class="mt-3 space-y-3"></div>
+
+        <div id="manualControls" class="mt-4 border-t pt-3 hidden">
+          <label class="block text-sm font-medium mb-2">Chọn shift thủ công</label>
+          <div class="flex items-center gap-3">
+            <input id="shiftRange" type="range" min="0" max="25" value="0" class="w-full">
+            <div class="w-14 text-center font-mono" id="shiftVal">0</div>
+            <button id="applyShift" class="px-3 py-1 bg-emerald-500 text-white rounded">Áp dụng</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="bg-white p-4 rounded-lg shadow-sm">
+        <h3 class="font-medium">Thông tin & Ghi chú</h3>
+        <ul class="mt-2 text-sm text-slate-600 list-disc list-inside">
+          <li>Thuật toán kết hợp: kiểm tra từ phổ biến (EN + VN) + phân tích tần suất (chi-squared) để xếp hạng.</li>
+          <li>Nếu văn bản không phải tiếng Anh/Việt, thử bật/tắt "Ưu tiên tiếng Việt" để thay đổi trọng số.</li>
+          <li>Chỉ dịch chữ latinh A-Z; các ký tự khác giữ nguyên (bật/tắt tùy chọn "Chỉ dịch các chữ A-Z / a-z").</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <script>
+  // ======= HELPER & DATA =======
+  const commonEnglish = ["the","be","to","of","and","a","in","that","have","I","it","for","not","on","with","he","as","you","do","at"];
+  const commonVietnamese = ["và","là","của","một","có","không","cho","đã","những","trong","với","anh","em","tôi","ấy","này","đó","vì","vậy","như"];
+
+  // English letter frequency (A-Z)
+  const ENG_FREQ = {
+    A:8.17,B:1.49,C:2.78,D:4.25,E:12.70,F:2.23,G:2.02,H:6.09,I:6.97,J:0.15,K:0.77,L:4.03,M:2.41,N:6.75,O:7.51,P:1.93,Q:0.10,R:5.99,S:6.33,T:9.06,U:2.76,V:0.98,W:2.36,X:0.15,Y:1.97,Z:0.07
+  };
+
+  // Chi-square expected vector
+  const engFreqArr = Object.values(ENG_FREQ);
+
+  // Normalize text: keep letters A-Z and a-z
+  function caesarShift(str, shift, onlyLetters=true){
+    const aCode = 'a'.charCodeAt(0);
+    const ACode = 'A'.charCodeAt(0);
+    return Array.from(str).map(ch => {
+      const code = ch.charCodeAt(0);
+      if (code >= ACode && code <= ACode+25) {
+        return String.fromCharCode((code - ACode + shift + 26) % 26 + ACode);
+      }
+      if (code >= aCode && code <= aCode+25) {
+        return String.fromCharCode((code - aCode + shift + 26) % 26 + aCode);
+      }
+      return onlyLetters ? ch : ch;
+    }).join('');
+  }
+
+  function scoreByWords(text, useVietnamese=false){
+    const lower = text.toLowerCase();
+    let score = 0;
+    const wordsEN = commonEnglish;
+    const wordsVN = commonVietnamese;
+    for (const w of wordsEN){ if (lower.includes('\b'+w+'\b')) score += 2; }
+    for (const w of wordsEN){ if (lower.includes(w)) score += 0.4; }
+    if (useVietnamese){
+      for (const w of wordsVN){ if (lower.includes('\b'+w+'\b')) score += 2.2; }
+      for (const w of wordsVN){ if (lower.includes(w)) score += 0.45; }
+    }
+    return score;
+  }
+
+  function chiSquared(text){
+    // compute letter frequency over A-Z
+    const counts = new Array(26).fill(0);
+    let total = 0;
+    for (const ch of text.toUpperCase()){
+      const code = ch.charCodeAt(0);
+      if (code >= 65 && code <= 90){ counts[code-65]++; total++; }
+    }
+    if (total === 0) return Infinity; // bad
+    // expected counts from ENG_FREQ
+    let chi = 0;
+    for (let i=0;i<26;i++){
+      const observed = counts[i];
+      const expected = engFreqArr[i] / 100 * total;
+      const diff = observed - expected;
+      chi += diff * diff / (expected + 0.0001);
+    }
+    return chi;
+  }
+
+  function rankCandidates(cipher, onlyLetters=true, useVietnamese=false){
+    const candidates = [];
+    for (let s=0;s<26;s++){
+      const decoded = caesarShift(cipher, 26 - s, onlyLetters);
+      const wordScore = scoreByWords(decoded, useVietnamese);
+      const chi = chiSquared(decoded);
+      // combine: lower chi better, higher wordScore better.
+      // We'll convert chi to a score: 1/(1+chi)
+      const chiScore = 1/(1 + chi);
+      const totalScore = wordScore * 3 + chiScore * 1; // weight words higher
+      candidates.push({shift: s, decoded, wordScore, chi, totalScore});
+    }
+    candidates.sort((a,b) => b.totalScore - a.totalScore);
+    return candidates;
+  }
+
+  // ======= DOM & UI =======
+  const inputEl = document.getElementById('input');
+  const crackBtn = document.getElementById('crackBtn');
+  const bruteBtn = document.getElementById('bruteBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const resultsEl = document.getElementById('results');
+  const shiftRange = document.getElementById('shiftRange');
+  const shiftVal = document.getElementById('shiftVal');
+  const applyShift = document.getElementById('applyShift');
+  const manualControls = document.getElementById('manualControls');
+  const onlyLettersCheckbox = document.getElementById('onlyLetters');
+  const useVietnameseCheckbox = document.getElementById('useVietnamese');
+
+  function renderResults(candidates){
+    resultsEl.innerHTML = '';
+    // show top 6
+    const top = candidates.slice(0,6);
+    for (const c of top){
+      const box = document.createElement('div');
+      box.className = 'p-3 border rounded hover:shadow-sm bg-slate-50';
+      box.innerHTML = `
+        <div class=\"flex justify-between items-start\"> 
+          <div>
+            <div class=\"text-sm text-slate-600\">Shift: <span class=\"font-mono\">${c.shift}</span> — score: ${c.totalScore.toFixed(3)}</div>
+            <pre class=\"whitespace-pre-wrap mt-2 text-sm font-sans\">${escapeHtml(c.decoded)}</pre>
+          </div>
+          <div class=\"flex flex-col gap-2 ml-4\">
+            <button class=\"copyBtn px-2 py-1 bg-indigo-600 text-white rounded text-sm\">Copy</button>
+            <button class=\"useBtn px-2 py-1 border rounded text-sm\">Dùng</button>
+          </div>
+        </div>
+      `;
+      // copy handler
+      box.querySelector('.copyBtn').addEventListener('click', ()=>{
+        navigator.clipboard.writeText(c.decoded).then(()=>{
+          alert('Đã copy kết quả vào clipboard');
+        });
+      });
+      box.querySelector('.useBtn').addEventListener('click', ()=>{
+        inputEl.value = c.decoded;
+      });
+      resultsEl.appendChild(box);
+    }
+
+    // show manual controls
+    manualControls.classList.remove('hidden');
+  }
+
+  function escapeHtml(str){
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  crackBtn.addEventListener('click', ()=>{
+    const cipher = inputEl.value || '';
+    if (!cipher.trim()) { alert('Vui lòng nhập văn bản mã hóa'); return; }
+    const onlyLetters = onlyLettersCheckbox.checked;
+    const useVietnamese = useVietnameseCheckbox.checked;
+    const candidates = rankCandidates(cipher, onlyLetters, useVietnamese);
+    renderResults(candidates);
+    // set range to top suggestion's shift
+    shiftRange.value = candidates[0].shift;
+    shiftVal.textContent = candidates[0].shift;
+  });
+
+  bruteBtn.addEventListener('click', ()=>{
+    const cipher = inputEl.value || '';
+    if (!cipher.trim()) { alert('Vui lòng nhập văn bản mã hóa'); return; }
+    const onlyLetters = onlyLettersCheckbox.checked;
+    const useVietnamese = useVietnameseCheckbox.checked;
+    // show all 26
+    const all = [];
+    for (let s=0;s<26;s++){
+      const decoded = caesarShift(cipher, 26 - s, onlyLetters);
+      all.push({shift:s, decoded});
+    }
+    resultsEl.innerHTML = '';
+    for (const c of all){
+      const row = document.createElement('div');
+      row.className = 'p-2 border-b flex justify-between items-center text-sm';
+      row.innerHTML = `<div><span class=\"font-mono\">Shift ${c.shift}</span> — <span class=\"ml-2\">${escapeHtml(c.decoded)}</span></div><div class=\"flex gap-2\"><button class=\"useBtn px-2 py-1 border rounded text-sm\">Dùng</button><button class=\"copyBtn px-2 py-1 bg-indigo-600 text-white rounded text-sm\">Copy</button></div>`;
+      row.querySelector('.copyBtn').addEventListener('click', ()=>{ navigator.clipboard.writeText(c.decoded).then(()=>alert('Đã copy')); });
+      row.querySelector('.useBtn').addEventListener('click', ()=>{ inputEl.value = c.decoded; });
+      resultsEl.appendChild(row);
+    }
+    manualControls.classList.remove('hidden');
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    inputEl.value = '';
+    resultsEl.innerHTML = '';
+    manualControls.classList.add('hidden');
+  });
+
+  shiftRange.addEventListener('input', ()=>{ shiftVal.textContent = shiftRange.value; });
+  applyShift.addEventListener('click', ()=>{
+    const s = parseInt(shiftRange.value,10);
+    const onlyLetters = onlyLettersCheckbox.checked;
+    const text = inputEl.value || '';
+    const decoded = caesarShift(text, 26 - s, onlyLetters);
+    inputEl.value = decoded;
+  });
+
+  // optional: try auto-crack on paste
+  inputEl.addEventListener('paste', ()=>{
+    // small delay then auto-run
+    setTimeout(()=>{
+      // do nothing automatic unless user presses crack
+    }, 10);
+  });
+
+  </script>
+</body>
+</html>

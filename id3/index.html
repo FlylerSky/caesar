@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tải và sử dụng Gemini Nano</title>
+</head>
+<body>
+ <style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background-color: #fff;
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 600px;
+}
+
+h1 {
+    color: #4CAF50;
+    margin-bottom: 0.5rem;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+#loadModelBtn {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#loadModelBtn:hover {
+    background-color: #45a049;
+}
+
+.status-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #e9e9e9;
+    border-radius: 5px;
+}
+
+.output-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: left;
+}
+
+#outputText {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+ </style>
+
+    <div class="container">
+        <h1>Tải và sử dụng Gemini Nano</h1>
+        <p>Nhấn vào nút dưới đây để khởi động quá trình tải mô hình Gemini Nano về thiết bị của bạn.</p>
+        
+        <button id="loadModelBtn">Tải mô hình</button>
+        
+        <div id="status" class="status-box">
+            <p>Trạng thái: <span id="statusText">Chưa sẵn sàng</span></p>
+        </div>
+
+        <div id="output" class="output-box" style="display: none;">
+            <h3>Kết quả mô hình:</h3>
+            <pre id="outputText"></pre>
+        </div>
+    </div>
+
+    <script>
+     document.addEventListener('DOMContentLoaded', () => {
+    const loadModelBtn = document.getElementById('loadModelBtn');
+    const statusText = document.getElementById('statusText');
+    const outputDiv = document.getElementById('output');
+    const outputText = document.getElementById('outputText');
+
+    // Kiểm tra xem trình duyệt có hỗ trợ Prompt API không
+    if ('LanguageModel' in window) {
+        statusText.textContent = "Sẵn sàng để tải mô hình.";
+        loadModelBtn.disabled = false;
+    } else {
+        statusText.textContent = "Trình duyệt của bạn không hỗ trợ Gemini Nano.";
+        loadModelBtn.disabled = true;
+        loadModelBtn.style.backgroundColor = '#ccc';
+        return; // Dừng lại nếu không hỗ trợ
+    }
+
+    // Xử lý sự kiện khi nhấn nút
+    loadModelBtn.addEventListener('click', async () => {
+        statusText.textContent = "Đang tải mô hình... (Có thể mất vài phút)";
+        loadModelBtn.disabled = true;
+
+        try {
+            // Gọi LanguageModel.create() để tải và tạo phiên mô hình
+            const session = await LanguageModel.create();
+
+            statusText.textContent = "Mô hình đã được tải thành công!";
+            
+            // Gửi một lời nhắc (prompt)
+            const prompt = "Viết một đoạn văn ngắn về lợi ích của việc học lập trình.";
+            const result = await session.prompt(prompt);
+
+            // Hiển thị kết quả
+            outputDiv.style.display = 'block';
+            outputText.textContent = result;
+
+        } catch (error) {
+            statusText.textContent = `Lỗi: ${error.message}. Vui lòng kiểm tra lại thiết bị và các cờ (flags) trong Chrome.`;
+            console.error(error);
+        } finally {
+            loadModelBtn.style.display = 'none'; // Ẩn nút sau khi hoàn thành
+        }
+    });
+});
+    </script>
+
+</body>
+</html>

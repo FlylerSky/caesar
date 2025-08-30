@@ -28,8 +28,12 @@
             <textarea id="outputText" class="w-full h-32 p-4 border border-gray-300 rounded-lg bg-gray-50" placeholder="Kết quả..." readonly></textarea>
             <button class="absolute bottom-2 right-2 bg-gray-700 text-white text-sm px-3 py-1 rounded-md hover:bg-gray-800 transition duration-200" onclick="copyResult()">Copy</button>
         </div>
-        <h3>version: 2.110525</h3>
+        <div class="thongbao">
+            <h3>version: 2.110525</h3>
         <p>Bổ sung: Mã hóa số</p>
+        <p>Chỉ hỗ trợ bảng chữ cái tiếng Anh</p>
+        </div>
+        
     </div>
 
     <script>
@@ -77,5 +81,12 @@
             alert('Đã sao chép kết quả!');
         }
     </script>
+    <style>
+        .thongbao {
+            padding: 15px;
+            background: #8690FFAD;
+            border-radius: 10px;
+        }
+    </style>
 </body>
 </html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One Account - System One</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="assets/js/firebase.js"></script>
+  <script defer src="assets/js/auth.js"></script>
+  <script defer src="assets/js/main.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="text-center">
+    <h1 class="text-3xl font-bold mb-6">Chào mừng đến <span class="text-blue-600">One Account</span></h1>
+    <div class="space-x-4">
+      <button id="openLogin" class="px-4 py-2 bg-blue-500 text-white rounded">Đăng nhập</button>
+      <button id="openRegister" class="px-4 py-2 bg-green-500 text-white rounded">Đăng ký</button>
+    </div>
+  </div>
+
+  <!-- Modal Login -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow-lg w-96 relative">
+      <h2 class="text-xl font-bold mb-4">Đăng nhập</h2>
+      <form id="loginForm" class="space-y-3">
+        <input type="email" id="loginEmail" placeholder="Email" class="w-full p-2 border rounded" required>
+        <input type="text" id="loginUID" placeholder="UID hoặc #Tag Name Account" class="w-full p-2 border rounded">
+        <input type="password" id="loginPassword" placeholder="Mật khẩu" class="w-full p-2 border rounded" required>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Đăng nhập</button>
+      </form>
+      <button id="closeLogin" class="absolute top-2 right-2 text-gray-500">✕</button>
+    </div>
+  </div>
+
+  <!-- Modal Register -->
+  <div id="registerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow-lg w-[500px] relative">
+      <h2 class="text-xl font-bold mb-4">Đăng ký</h2>
+      <form id="registerForm" class="space-y-3 max-h-[70vh] overflow-y-auto">
+        <input type="email" id="regEmail" placeholder="Email" class="w-full p-2 border rounded" required>
+        <input type="text" id="regRealName" placeholder="Tên thật" class="w-full p-2 border rounded" required>
+        <input type="text" id="regDisplayName" placeholder="Tên hiển thị" class="w-full p-2 border rounded" required>
+        <select id="regGender" class="w-full p-2 border rounded">
+          <option value="">Giới tính</option>
+          <option value="male">Nam</option>
+          <option value="female">Nữ</option>
+          <option value="other">Khác</option>
+        </select>
+        <input type="date" id="regBirthday" class="w-full p-2 border rounded" required>
+        <input type="text" id="regCountry" placeholder="Quốc gia" class="w-full p-2 border rounded" required>
+        <input type="text" id="regTagSearch" placeholder="Tag Name Search (@tên)" class="w-full p-2 border rounded" required>
+        <input type="text" id="regTagAccount" placeholder="Tag Name Account (#tên)" class="w-full p-2 border rounded" required>
+        <input type="password" id="regPassword" placeholder="Mật khẩu" class="w-full p-2 border rounded" required>
+        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded">Đăng ký</button>
+      </form>
+      <button id="closeRegister" class="absolute top-2 right-2 text-gray-500">✕</button>
+    </div>
+  </div>
+
+</body>
+</html>
