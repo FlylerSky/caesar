@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,46 +11,219 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <style>
-        /* Custom styles for chat container */
+        /* Custom styles for chat container and theme */
         #chat-container {
-            height: calc(100vh - 12rem);
+            height: calc(100vh - 10rem);
             overflow-y: auto;
+            scroll-behavior: smooth;
         }
-        /* Ensure messages don't break layout */
+        .light {
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --nav-bg: #2563eb;
+            --message-bg: #ffffff;
+            --input-bg: #ffffff;
+            --border-color: #d1d5db;
+            --menu-bg: #1e3a8a;
+        }
+        .dark {
+            --bg-color: #1f2937;
+            --text-color: #e5e7eb;
+            --nav-bg: #1e40af;
+            --message-bg: #374151;
+            --input-bg: #374151;
+            --border-color: #4b5563;
+            --menu-bg: #111827;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        nav {
+            background-color: var(--nav-bg);
+        }
         .message {
             word-break: break-word;
+            background-color: var(--message-bg);
+        }
+        .message-text {
+            font-size: var(--message-font-size, 1rem);
+        }
+        #input-area {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+        }
+        /* Menu styles */
+        #menu {
+            transition: transform 0.3s ease-in-out;
+            background-color: var(--menu-bg);
+        }
+        #menu.hidden {
+            transform: translateX(100%);
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .tab.active {
+            border-bottom-color: #3b82f6;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        .tab:not(.active) {
+            color: #9ca3af;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            #chat-container {
+                height: calc(100vh - 12rem);
+            }
+            nav {
+                padding: 0.5rem 1rem;
+            }
+            #messages {
+                padding: 0.5rem;
+            }
+            .message {
+                padding: 0.75rem;
+            }
+            #input-area {
+                padding: 0.5rem;
+            }
+            #message-input {
+                font-size: 0.9rem;
+            }
+            #send-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            #menu {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 75%;
+                max-width: 16rem;
+                height: 100%;
+                z-index: 50;
+                box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3);
+            }
+            .tab {
+                font-size: 0.9rem;
+            }
+            .settings-item label {
+                font-size: 0.8rem;
+            }
+            .settings-item input, .settings-item select {
+                font-size: 0.8rem;
+                padding: 0.25rem;
+            }
+        }
+        @media (min-width: 640px) {
+            #menu-button {
+                display: none;
+            }
+            #menu {
+                position: static;
+                transform: none !important;
+                width: auto;
+                height: auto;
+                background: none;
+                box-shadow: none;
+            }
+            #tabs {
+                display: none;
+            }
+            .tab-content {
+                display: flex !important;
+                flex-direction: row;
+                align-items: center;
+                gap: 1rem;
+            }
+            .settings-item {
+                margin-left: 1rem;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 flex flex-col h-screen">
+<body class="flex flex-col min-h-screen transition-colors duration-300">
     <!-- Navigation Bar -->
-    <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold">One Chat</h1>
-        <div class="flex items-center space-x-4">
-            <div id="user-status" class="text-sm hidden">Signed in as: <span id="user-name"></span></div>
-            <div id="connection-status" class="text-sm">Connecting...</div>
-            <button id="auth-button" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100"></button>
+    <nav class="text-white p-4 flex items-center justify-between gap-2">
+        <h1 class="text-xl sm:text-2xl font-bold">One Chat</h1>
+        <button id="menu-button" class="sm:hidden p-2 text-white hover:bg-blue-700 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+        </button>
+        <div id="menu" class="hidden sm:flex sm:items-center sm:space-x-4 bg-blue-800 sm:bg-transparent p-4 sm:p-0 fixed top-0 right-0 h-full flex-col">
+            <div id="tabs" class="flex border-b border-gray-600 sm:hidden">
+                <div id="tab-status" class="tab active">Status</div>
+                <div id="tab-settings" class="tab">Settings</div>
+            </div>
+            <div id="status-content" class="tab-content active p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <div id="user-status" class="text-xs sm:text-sm hidden">Signed in as: <span id="user-name"></span></div>
+                <div id="connection-status" class="text-xs sm:text-sm">Connecting...</div>
+            </div>
+            <div id="settings-content" class="tab-content p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-2">
+                <button id="auth-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">Sign in with Google</button>
+                <button id="theme-toggle" class="bg-gray-200 dark:bg-gray-600 text-blue-600 dark:text-white px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 text-sm">
+                    Toggle Dark Mode
+                </button>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="bg-color" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Background:</label>
+                    <input type="color" id="bg-color" class="rounded" value="#f3f4f6">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="nav-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Navbar:</label>
+                    <input type="color" id="nav-bg" class="rounded" value="#2563eb">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="message-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Messages:</label>
+                    <input type="color" id="message-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="input-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Input:</label>
+                    <input type="color" id="input-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="font-size" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Font Size:</label>
+                    <select id="font-size" class="border rounded p-1 text-sm">
+                        <option value="0.9rem">Small</option>
+                        <option value="1rem" selected>Medium</option>
+                        <option value="1.1rem">Large</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </nav>
 
     <!-- Chat Messages Area -->
-    <div id="chat-container" class="flex-1 p-4 overflow-y-auto">
-        <div id="messages" class="space-y-4"></div>
+    <div id="chat-container" class="flex-1 p-2 sm:p-4 overflow-y-auto">
+        <div id="messages" class="space-y-2 sm:space-y-4 max-w-3xl mx-auto"></div>
     </div>
 
     <!-- Input Area -->
-    <div id="input-area" class="bg-white p-4 border-t border-gray-300 hidden">
-        <div class="flex space-x-2">
+    <div id="input-area" class="p-2 sm:p-4 border-t transition-colors duration-300">
+        <div class="flex space-x-2 max-w-3xl mx-auto">
             <input
                 id="message-input"
                 type="text"
                 placeholder="Type your message..."
-                class="flex-1 border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="flex-1 border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
                 maxlength="200"
             >
             <button
                 id="send-button"
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base"
                 disabled
             >
                 Send
@@ -80,14 +253,114 @@
         const provider = new firebase.auth.GoogleAuthProvider();
 
         // DOM elements
+        const htmlRoot = document.getElementById('html-root');
+        const menuButton = document.getElementById('menu-button');
+        const menu = document.getElementById('menu');
+        const tabStatus = document.getElementById('tab-status');
+        const tabSettings = document.getElementById('tab-settings');
+        const statusContent = document.getElementById('status-content');
+        const settingsContent = document.getElementById('settings-content');
         const connectionStatus = document.getElementById('connection-status');
         const userStatus = document.getElementById('user-status');
         const userName = document.getElementById('user-name');
         const authButton = document.getElementById('auth-button');
+        const themeToggle = document.getElementById('theme-toggle');
         const inputArea = document.getElementById('input-area');
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
+        const bgColorInput = document.getElementById('bg-color');
+        const navBgInput = document.getElementById('nav-bg');
+        const messageBgInput = document.getElementById('message-bg');
+        const inputBgInput = document.getElementById('input-bg');
+        const fontSizeSelect = document.getElementById('font-size');
+
+        // Load saved customization
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        htmlRoot.classList.remove('light', 'dark');
+        htmlRoot.classList.add(savedTheme);
+        themeToggle.textContent = savedTheme === 'light' ? 'Dark Mode' : 'Light Mode';
+
+        const savedCustomizations = JSON.parse(localStorage.getItem('customizations')) || {};
+        bgColorInput.value = savedCustomizations.bgColor || (savedTheme === 'light' ? '#f3f4f6' : '#1f2937');
+        navBgInput.value = savedCustomizations.navBg || (savedTheme === 'light' ? '#2563eb' : '#1e40af');
+        messageBgInput.value = savedCustomizations.messageBg || (savedTheme === 'light' ? '#ffffff' : '#374151');
+        inputBgInput.value = savedCustomizations.inputBg || (savedTheme === 'light' ? '#ffffff' : '#374151');
+        fontSizeSelect.value = savedCustomizations.fontSize || '1rem';
+
+        // Apply saved customizations
+        document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
+        document.documentElement.style.setProperty('--nav-bg', navBgInput.value);
+        document.documentElement.style.setProperty('--message-bg', messageBgInput.value);
+        document.documentElement.style.setProperty('--input-bg', inputBgInput.value);
+        document.documentElement.style.setProperty('--message-font-size', fontSizeSelect.value);
+
+        // Save and apply color customizations
+        function saveCustomizations() {
+            const customizations = {
+                bgColor: bgColorInput.value,
+                navBg: navBgInput.value,
+                messageBg: messageBgInput.value,
+                inputBg: inputBgInput.value,
+                fontSize: fontSizeSelect.value
+            };
+            localStorage.setItem('customizations', JSON.stringify(customizations));
+            document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
+            document.documentElement.style.setProperty('--nav-bg', navBgInput.value);
+            document.documentElement.style.setProperty('--message-bg', messageBgInput.value);
+            document.documentElement.style.setProperty('--input-bg', inputBgInput.value);
+            document.documentElement.style.setProperty('--message-font-size', fontSizeSelect.value);
+        }
+
+        // Event listeners for customization
+        bgColorInput.addEventListener('input', saveCustomizations);
+        navBgInput.addEventListener('input', saveCustomizations);
+        messageBgInput.addEventListener('input', saveCustomizations);
+        inputBgInput.addEventListener('input', saveCustomizations);
+        fontSizeSelect.addEventListener('change', saveCustomizations);
+
+        // Dark mode toggle
+        themeToggle.addEventListener('click', () => {
+            const newTheme = htmlRoot.classList.contains('light') ? 'dark' : 'light';
+            htmlRoot.classList.remove('light', 'dark');
+            htmlRoot.classList.add(newTheme);
+            themeToggle.textContent = newTheme === 'light' ? 'Dark Mode' : 'Light Mode';
+            localStorage.setItem('theme', newTheme);
+            // Reset colors to theme defaults if switching
+            bgColorInput.value = newTheme === 'light' ? '#f3f4f6' : '#1f2937';
+            navBgInput.value = newTheme === 'light' ? '#2563eb' : '#1e40af';
+            messageBgInput.value = newTheme === 'light' ? '#ffffff' : '#374151';
+            inputBgInput.value = newTheme === 'light' ? '#ffffff' : '#374151';
+            saveCustomizations();
+            menu.classList.add('hidden'); // Close menu after action
+        });
+
+        // Menu toggle for mobile
+        menuButton.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+
+        // Close menu when clicking outside (mobile only)
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target) && !menuButton.contains(e.target) && window.innerWidth < 640) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // Tab switching
+        tabStatus.addEventListener('click', () => {
+            tabStatus.classList.add('active');
+            tabSettings.classList.remove('active');
+            statusContent.classList.add('active');
+            settingsContent.classList.remove('active');
+        });
+
+        tabSettings.addEventListener('click', () => {
+            tabSettings.classList.add('active');
+            tabStatus.classList.remove('active');
+            settingsContent.classList.add('active');
+            statusContent.classList.remove('active');
+        });
 
         // Monitor Firebase connection status
         database.ref('.info/connected').on('value', (snapshot) => {
@@ -134,6 +407,7 @@
                     alert('Failed to sign in: ' + error.message);
                 });
             }
+            menu.classList.add('hidden'); // Close menu after action
         });
 
         // Handle sending messages (only if authenticated)
@@ -173,11 +447,15 @@
             const data = snapshot.val();
             if (data && data.name && data.message) {
                 const messageElement = document.createElement('div');
-                messageElement.classList.add('message', 'p-3', 'bg-white', 'rounded-lg', 'shadow');
+                messageElement.classList.add('message', 'p-3', 'rounded-lg', 'shadow', 'max-w-full', 'sm:max-w-2xl');
                 messageElement.innerHTML = `
-                    <span class="font-bold text-blue-600">${sanitizeHTML(data.name)}</span>:
-                    ${sanitizeHTML(data.message)}
-                    <span class="text-xs text-gray-500">${new Date(data.timestamp).toLocaleTimeString()}</span>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="font-bold text-blue-600 dark:text-blue-400">${sanitizeHTML(data.name)}</span>:
+                            <span class="message-text">${sanitizeHTML(data.message)}</span>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">${new Date(data.timestamp).toLocaleTimeString()}</span>
+                    </div>
                 `;
                 messagesDiv.appendChild(messageElement);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
