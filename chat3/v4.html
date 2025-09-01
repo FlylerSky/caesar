@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="vi" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>One Chat — Public Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root{--accent:#10b981;--bubble-bg:#0b1220;--bubble-border:#26303a}
+      .msg-bubble { background-color: var(--bubble-bg); border-color: var(--bubble-border); }
+      .sr-only{position:absolute!important;height:1px;width:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+      /* Simple modal */
+      .oc-modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);z-index:50}
+      .oc-card{background:var(--card-bg,#0b1220);border:1px solid var(--card-border,#26303a);padding:1rem;border-radius:12px;max-width:680px;width:100%}
+    </style>
+    <script>
+      tailwind.config = { darkMode: 'class' }
+    </script>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
+    <!-- Top nav/menu (same as before) -->
+    <header class="sticky top-0 z-20 bg-neutral-900/90 backdrop-blur border-b border-neutral-800">
+      <div class="mx-auto max-w-3xl px-3 h-12 flex items-center justify-between">
+        <div id="appName" class="font-semibold tracking-wide">One Chat</div>
+        <button id="menuBtn" aria-expanded="false" class="p-2 rounded-lg hover:bg-neutral-800">☰</button>
+      </div>
+
+      <div id="menuPanel" class="hidden absolute right-3 top-14 w-80 bg-neutral-900 border border-neutral-800 rounded-xl shadow-lg p-2">
+        <div class="overflow-x-auto">
+          <div id="tabs" class="flex gap-2 px-2">
+            <button data-tab="basic" class="tab-btn px-3 py-1 rounded-xl text-sm whitespace-nowrap">Cơ bản</button>
+            <button data-tab="notify" class="tab-btn px-3 py-1 rounded-xl text-sm whitespace-nowrap">Thông báo</button>
+            <button data-tab="custom" class="tab-btn px-3 py-1 rounded-xl text-sm whitespace-nowrap">Tùy chỉnh</button>
+          </div>
+        </div>
+
+        <div id="tabPanels" class="mt-3">
+          <div data-panel="basic" class="tab-panel">
+            <div class="flex items-center gap-2 text-sm select-none mb-2">
+              <span id="connDot" class="inline-block h-2.5 w-2.5 rounded-full bg-neutral-500"></span>
+              <span id="connText" class="text-neutral-400">Đang khởi động…</span>
+            </div>
+            <div class="flex items-center gap-2 mb-3">
+              <img id="userAvatar" class="hidden h-8 w-8 rounded-full border border-neutral-700" />
+              <div>
+                <div id="userName" class="text-sm text-neutral-300"> </div>
+                <div class="text-xs text-neutral-500">Tài khoản Google</div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button id="menuProfileBtn" class="w-1/2 text-sm px-3 py-2 rounded-xl bg-neutral-800 text-neutral-200">My Profile</button>
+              <button id="loginBtn" class="w-1/2 text-sm px-3 py-2 rounded-xl bg-neutral-100 text-neutral-900">Đăng nhập</button>
+            </div>
+          </div>
+
+          <div data-panel="notify" class="tab-panel hidden">
+            <div class="text-sm text-neutral-400">(Tạm thời) Cấu hình thông báo sẽ được bổ sung sau.</div>
+          </div>
+
+          <div data-panel="custom" class="tab-panel hidden">
+            <div class="space-y-3">
+              <div>
+                <div class="text-xs text-neutral-400 mb-1">Chế độ màu</div>
+                <div class="flex gap-2">
+                  <button id="themeLight" class="px-3 py-1 rounded-lg bg-neutral-100 text-neutral-900 text-sm">Sáng</button>
+                  <button id="themeDark" class="px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Tối</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-neutral-400 mb-1">Kích thước chữ</div>
+                <div class="flex gap-2">
+                  <button data-size="small" class="size-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Nhỏ</button>
+                  <button data-size="normal" class="size-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Vừa</button>
+                  <button data-size="large" class="size-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Lớn</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-neutral-400 mb-1">Góc bo bong bóng</div>
+                <div class="flex gap-2">
+                  <button data-bubble="rounded" class="bubble-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Bo tròn</button>
+                  <button data-bubble="pill" class="bubble-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Pill</button>
+                  <button data-bubble="flat" class="bubble-btn px-3 py-1 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Phẳng</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-neutral-400 mb-1">Màu chủ đạo</div>
+                <div class="flex gap-2 items-center">
+                  <button data-color="#10b981" class="color-btn w-8 h-8 rounded-full" style="background:#10b981"></button>
+                  <button data-color="#3b82f6" class="color-btn w-8 h-8 rounded-full" style="background:#3b82f6"></button>
+                  <button data-color="#8b5cf6" class="color-btn w-8 h-8 rounded-full" style="background:#8b5cf6"></button>
+                  <button data-color="#ef4444" class="color-btn w-8 h-8 rounded-full" style="background:#ef4444"></button>
+                  <button data-color="#f59e0b" class="color-btn w-8 h-8 rounded-full" style="background:#f59e0b"></button>
+                </div>
+              </div>
+
+              <div>
+                <button id="resetCustom" class="w-full px-3 py-2 rounded-lg bg-neutral-800 text-neutral-200 text-sm">Khôi phục mặc định</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <main class="mx-auto max-w-3xl px-3">
+      <div id="messages" class="mt-3 mb-24 space-y-2 overflow-y-auto max-h-[calc(100dvh-10rem)] pr-1"></div>
+    </main>
+
+    <!-- Composer -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-neutral-900/80 backdrop-blur border-t border-neutral-800">
+      <form id="composer" class="mx-auto max-w-3xl px-3 py-3 grid grid-cols-12 gap-2">
+        <input id="text" type="text" placeholder="Nhập tin nhắn…"
+               class="col-span-10 md:col-span-11 rounded-2xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500"
+               maxlength="500" required />
+        <button id="sendBtn" type="submit"
+                class="col-span-2 md:col-span-1 rounded-2xl bg-neutral-100 text-neutral-900 font-medium px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed">Gửi</button>
+      </form>
+    </footer>
+
+    <!-- Profile modal (view/edit + blogs) -->
+    <div id="profileModal" class="hidden oc-modal">
+      <div class="oc-card">
+        <div class="flex justify-between items-start mb-3">
+          <h3 id="profileTitle">Profile</h3>
+          <button id="closeProfile" class="text-sm px-2 py-1 rounded bg-neutral-800">Đóng</button>
+        </div>
+
+        <div id="profileView"></div>
+      </div>
+    </div>
+
+    <!-- Private chat modal -->
+    <div id="dmModal" class="hidden oc-modal">
+      <div class="oc-card max-w-xl">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-3">
+            <img id="dmAvatar" class="h-10 w-10 rounded-full"/>
+            <div>
+              <div id="dmName" class="font-medium"></div>
+              <div id="dmUid" class="text-xs text-neutral-400"></div>
+            </div>
+          </div>
+          <div>
+            <button id="closeDm" class="text-sm px-2 py-1 rounded bg-neutral-800">Đóng</button>
+          </div>
+        </div>
+        <div id="dmMessages" style="height:300px;overflow:auto" class="mb-3"></div>
+        <form id="dmForm" class="flex gap-2">
+          <input id="dmText" class="flex-1 rounded px-3 py-2 bg-neutral-800" placeholder="Nhắn riêng…" maxlength="500" />
+          <button class="oc-btn oc-primary">Gửi</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Firebase + App Script -->
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
+      import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot, doc, setDoc, getDoc, getDocs, where, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js'
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js'
+
+      const firebaseConfig = {
+  apiKey: "AIzaSyD-TXkpROaUzr0rmf6DvchEfMTgfRCmHdU",
+  authDomain: "relifechat.firebaseapp.com",
+  projectId: "relifechat",
+  storageBucket: "relifechat.firebasestorage.app",
+  messagingSenderId: "108424998260",
+  appId: "1:108424998260:web:d1472805ee5a1c3c94d021",
+  measurementId: "G-N6VWB9GRV3"
+};
+
+      const app = initializeApp(firebaseConfig)
+      const db = getFirestore(app)
+      const auth = getAuth(app)
+      const provider = new GoogleAuthProvider()
+
+      // DOM refs
+      const $ = (s)=>document.querySelector(s)
+      const messagesEl = $('#messages')
+      const form = $('#composer')
+      const textInput = $('#text')
+      const sendBtn = $('#sendBtn')
+      const connDot = $('#connDot')
+      const connText = $('#connText')
+      const loginBtn = $('#loginBtn')
+      const userAvatar = $('#userAvatar')
+      const userName = $('#userName')
+      const menuBtn = $('#menuBtn')
+      const menuPanel = $('#menuPanel')
+      const tabBtns = Array.from(document.querySelectorAll('.tab-btn'))
+      const panels = Array.from(document.querySelectorAll('.tab-panel'))
+
+      // profile & dm
+      const profileModal = $('#profileModal')
+      const profileView = $('#profileView')
+      const closeProfile = $('#closeProfile')
+      const menuProfileBtn = $('#menuProfileBtn')
+      const dmModal = $('#dmModal')
+      const dmMessages = $('#dmMessages')
+      const dmForm = $('#dmForm')
+      const dmText = $('#dmText')
+      const dmName = $('#dmName')
+      const dmAvatar = $('#dmAvatar')
+      const dmUid = $('#dmUid')
+      const closeDm = $('#closeDm')
+
+      // prefs
+      const prefs = { theme: localStorage.getItem('onechat:theme') || 'dark', size: localStorage.getItem('onechat:size') || 'normal', bubble: localStorage.getItem('onechat:bubble') || 'rounded', accent: localStorage.getItem('onechat:accent') || getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#10b981' }
+      const applyPrefs = ()=>{
+        if (prefs.theme==='light') document.documentElement.classList.remove('dark'); else document.documentElement.classList.add('dark')
+        document.documentElement.classList.remove('text-sm','text-base','text-lg')
+        if (prefs.size==='small') document.documentElement.classList.add('text-sm')
+        else if (prefs.size==='normal') document.documentElement.classList.add('text-base')
+        else document.documentElement.classList.add('text-lg')
+        window.ONECHAT_BUBBLE = prefs.bubble
+        document.documentElement.style.setProperty('--accent',prefs.accent)
+        if (prefs.theme==='light'){ document.documentElement.style.setProperty('--bubble-bg','#f8fafc'); document.documentElement.style.setProperty('--bubble-border','#e6edf3') } else { document.documentElement.style.setProperty('--bubble-bg','#0b1220'); document.documentElement.style.setProperty('--bubble-border','#26303a') }
+      }
+      applyPrefs()
+
+      // helpers
+      const esc = (s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))
+      const setStatus = (state,label)=>{ const colors={idle:'bg-neutral-500',offline:'bg-red-500',connecting:'bg-amber-400',live:'bg-emerald-500',error:'bg-red-600'}; connDot.className=`inline-block h-2.5 w-2.5 rounded-full ${colors[state]||colors.idle}`; connText.textContent=label }
+      const updateOnline = ()=>{ if(!navigator.onLine) setStatus('offline','Ngoại tuyến (thiết bị)'); else setStatus('connecting','Đang kết nối…') }
+      window.addEventListener('online',updateOnline); window.addEventListener('offline',updateOnline); updateOnline()
+
+      // messages
+      const msgsRef = collection(db,'messages')
+      const q = query(msgsRef, orderBy('createdAt','asc'), limit(200))
+      let initialLoaded=false
+
+      function makeUserClickable(el, uid){ el.style.cursor='pointer'; el.addEventListener('click', ()=> openProfile(uid)) }
+
+      function renderMsg(doc){
+        const d = doc.data(); const name = esc(d.name||'Ẩn danh'); const text = esc(d.text||''); const t = d.createdAt?.toDate?.()||new Date(); const time = new Intl.DateTimeFormat('vi-VN',{hour:'2-digit',minute:'2-digit'}).format(t)
+        const avatar = d.photo||''
+        const item = document.createElement('div')
+        const bubbleStyle = (window.ONECHAT_BUBBLE==='pill')?'rounded-full':(window.ONECHAT_BUBBLE==='flat')?'rounded-none':'rounded-2xl'
+        item.className = `flex items-start gap-3 msg-bubble border p-3 ${bubbleStyle}`
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#10b981'
+        item.innerHTML = ` <img src="${esc(avatar)}" class="h-8 w-8 rounded-full bg-neutral-800 shrink-0" onerror="this.style.display='none'" style="border:2px solid ${accent};"/> <div class="min-w-0"> <div class="flex items-center gap-2 text-xs text-neutral-400"> <span class="font-medium text-neutral-200 user-name">${name}</span> <span>•</span> <time>${time}</time> </div> <div class="mt-1 text-sm leading-relaxed break-words">${text}</div> </div>`
+        // attach uid to clickable name if present
+        const nameEl = item.querySelector('.user-name')
+        if(d.uid){ nameEl.dataset.uid = d.uid; makeUserClickable(nameEl,d.uid) }
+        messagesEl.appendChild(item)
+      }
+
+      onSnapshot(q,(snapshot)=>{
+        if(!initialLoaded) messagesEl.innerHTML=''
+        snapshot.docChanges().forEach(change=>{ if(change.type==='added') renderMsg(change.doc) })
+        if(!initialLoaded){ initialLoaded=true; setStatus('live','Trực tuyến'); scrollToBottom() } else scrollToBottom()
+      },(err)=>{ console.error(err); setStatus('error','Lỗi kết nối dữ liệu') })
+
+      const scrollToBottom = ()=> messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' })
+
+      // send public message
+      form.addEventListener('submit', async(e)=>{
+        e.preventDefault(); if(!auth.currentUser){ alert('Bạn phải đăng nhập trước khi gửi tin.'); return }
+        const user=auth.currentUser; const text=textInput.value.trim(); if(!text) return; sendBtn.disabled=true
+        try{ await addDoc(msgsRef,{ uid:user.uid, name:user.displayName||'Ẩn danh', photo:user.photoURL||null, text, createdAt:serverTimestamp() }); textInput.value=''; textInput.focus() }catch(e){ alert('Gửi thất bại.'); console.error(e) }finally{ sendBtn.disabled=false }
+      })
+
+      // auth
+      onAuthStateChanged(auth,user=>{ if(user){ loginBtn.textContent='Đăng xuất'; userAvatar.src=user.photoURL; userAvatar.classList.remove('hidden'); userName.textContent=user.displayName||'' } else { loginBtn.textContent='Đăng nhập'; userAvatar.classList.add('hidden'); userName.textContent='' } })
+      loginBtn.addEventListener('click',async()=>{ if(auth.currentUser) await signOut(auth); else{ try{ await signInWithPopup(auth,provider) }catch(e){ console.error(e); alert('Không đăng nhập được, thử lại.') } } })
+
+      // menu toggle & tabs
+      menuBtn.addEventListener('click',()=>{ const open = menuPanel.classList.toggle('hidden'); menuBtn.setAttribute('aria-expanded',String(open)) })
+      tabBtns.forEach(b=>b.addEventListener('click',()=>{ tabBtns.forEach(x=>x.classList.toggle('bg-neutral-700',x===b)); panels.forEach(p=>p.classList.toggle('hidden', p.dataset.panel!==b.dataset.tab)) }))
+      // activate first tab
+      if(tabBtns[0]) tabBtns[0].click()
+
+      // profile logic: save/load profile to `profiles/{uid}`
+      async function saveProfile(uid, data){ try{ await setDoc(doc(db,'profiles',uid), { ...data, updatedAt: serverTimestamp() }, { merge:true }) ; return true }catch(e){ console.error(e); return false } }
+      async function loadProfile(uid){ const d = await getDoc(doc(db,'profiles',uid)); return d.exists()? d.data() : null }
+
+      // blog functions: collection 'blogs' with fields {authorUid,title,content,createdAt}
+      async function postBlog(authorUid,title,content){ try{ await addDoc(collection(db,'blogs'),{ authorUid,title,content,createdAt:serverTimestamp() }); return true }catch(e){ console.error(e); return false } }
+      async function loadBlogsByUser(uid){ const q = query(collection(db,'blogs'), where('authorUid','==',uid), orderBy('createdAt','desc')); const snap = await getDocs(q); return snap.docs.map(d=>({id:d.id, ...d.data()})) }
+      async function deleteBlog(id){ try{ await deleteDoc(doc(db,'blogs',id)); return true }catch(e){ console.error(e); return false } }
+
+      // open profile modal (view other user's profile)
+      async function openProfile(uid){
+        const me = auth.currentUser
+        const profile = await loadProfile(uid)
+        const blogs = await loadBlogsByUser(uid)
+        profileView.innerHTML = ''
+        const box = document.createElement('div')
+        box.innerHTML = `
+          <div class="flex gap-3 items-center mb-3">
+            <img src="${esc(profile?.photo||'')}" onerror="this.style.display='none'" class="h-12 w-12 rounded-full" />
+            <div>
+              <div class="font-medium text-lg">${esc(profile?.displayName||profile?.name||'Ẩn danh')}</div>
+              <div class="text-xs text-neutral-400">UID: ${uid}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-sm mb-3">
+            <div>Giới tính: ${esc(profile?.gender||'Chưa chọn')}</div>
+            <div>Sinh nhật: ${profile?.birthday? esc(profile.birthday): '—'}</div>
+            <div>Quốc gia: ${esc(profile?.country||'—')}</div>
+          </div>
+        `
+        // profile actions
+        const actions = document.createElement('div')
+        actions.className = 'flex gap-2 mb-3'
+        if(me && me.uid===uid){
+          const editBtn = document.createElement('button'); editBtn.textContent='Chỉnh sửa hồ sơ'; editBtn.className='oc-btn oc-primary'
+          editBtn.addEventListener('click', ()=> openEditProfile(uid, profile))
+          actions.appendChild(editBtn)
+        } else {
+          const dmBtn = document.createElement('button'); dmBtn.textContent='Nhắn riêng'; dmBtn.className='oc-btn'; dmBtn.addEventListener('click', ()=> openDmWith(uid, profile))
+          actions.appendChild(dmBtn)
+        }
+        box.appendChild(actions)
+
+        // Blog list
+        const blogWrap = document.createElement('div')
+        blogWrap.innerHTML = '<h4 class="font-medium mb-2">Bài viết</h4>'
+        if(blogs.length===0) blogWrap.innerHTML += '<div class="text-sm text-neutral-400">Chưa có bài viết.</div>'
+        else{
+          const ul = document.createElement('div'); ul.className='space-y-2'
+          blogs.forEach(b=>{
+            const it = document.createElement('div'); it.className='p-2 border rounded'; it.innerHTML = `<div class="font-semibold">${esc(b.title)}</div><div class="text-sm text-neutral-300 mt-1">${esc(b.content)}</div>`
+            if(me && me.uid===b.authorUid){ const del = document.createElement('button'); del.className='text-xs text-red-400 mt-2'; del.textContent='Xóa bài'; del.addEventListener('click', async ()=>{ if(confirm('Xóa bài viết?')){ const ok = await deleteBlog(b.id); if(ok){ it.remove() } } }); it.appendChild(del) }
+            ul.appendChild(it)
+          })
+          blogWrap.appendChild(ul)
+        }
+        box.appendChild(blogWrap)
+
+        profileView.appendChild(box)
+        profileModal.classList.remove('hidden')
+      }
+
+      // edit own profile UI
+      function openEditProfile(uid, profile){
+        profileView.innerHTML = ''
+        const form = document.createElement('form')
+        form.innerHTML = `
+          <label class="block mb-2">Tên hiển thị: <input id="p_name" class="w-full rounded px-2 py-1 mt-1" value="${esc(profile?.displayName||'')}"></label>
+          <label class="block mb-2">Sinh nhật: <input id="p_bday" type="date" class="w-full rounded px-2 py-1 mt-1" value="${profile?.birthday||''}"></label>
+          <label class="block mb-2">Giới tính: <select id="p_gender" class="w-full rounded px-2 py-1 mt-1"><option value="">Chưa chọn</option><option value="male">Nam</option><option value="female">Nữ</option><option value="other">Khác</option></select></label>
+          <label class="block mb-2">Quốc gia: <input id="p_country" class="w-full rounded px-2 py-1 mt-1" value="${esc(profile?.country||'')}"></label>
+          <div class="flex gap-2 mt-3"><button type="submit" class="oc-btn oc-primary">Lưu</button><button type="button" id="cancelEdit" class="oc-btn">Hủy</button></div>
+        `
+        profileView.appendChild(form)
+        // set select value
+        const sel = form.querySelector('#p_gender'); if(profile?.gender) sel.value = profile.gender
+        form.addEventListener('submit', async(e)=>{ e.preventDefault(); const me = auth.currentUser; if(!me){ alert('Phải đăng nhập'); return }
+          const data = { displayName: form.querySelector('#p_name').value.trim(), birthday: form.querySelector('#p_bday').value || null, gender: form.querySelector('#p_gender').value || null, country: form.querySelector('#p_country').value.trim() || null, photo: me.photoURL || null }
+          const ok = await saveProfile(me.uid, data)
+          if(ok){ alert('Lưu thành công'); profileModal.classList.add('hidden') }
+        })
+        form.querySelector('#cancelEdit').addEventListener('click', ()=>{ profileModal.classList.add('hidden') })
+      }
+
+      // menu profile button opens own profile
+      menuProfileBtn.addEventListener('click', async ()=>{
+        const me = auth.currentUser
+        if(!me){ alert('Bạn phải đăng nhập để xem hồ sơ cá nhân'); return }
+        const p = await loadProfile(me.uid)
+        openProfile(me.uid)
+      })
+      closeProfile.addEventListener('click', ()=> profileModal.classList.add('hidden'))
+
+      // blog posting from profile modal (if editing own profile, include form). We'll also allow posting via modal when viewing own profile
+      // To support posting, intercept submission inside profileView when blog form exists
+      profileView.addEventListener('submit', async(e)=>{
+        if(e.target && e.target.id==='blogForm'){ e.preventDefault(); const me = auth.currentUser; if(!me){ alert('Phải đăng nhập'); return }
+          const title = profileView.querySelector('#blogTitle').value.trim(); const content = profileView.querySelector('#blogContent').value.trim(); if(!title||!content) return alert('Nhập tiêu đề và nội dung'); const ok = await postBlog(me.uid,title,content); if(ok){ alert('Đăng thành công'); // refresh
+            const blogs = await loadBlogsByUser(me.uid); const evt = new CustomEvent('refreshBlogs',{detail:{blogs}}); profileView.dispatchEvent(evt) }
+        }
+      })
+
+      // DM (private chat)
+      let currentDmRoom = null
+      let unsubscribeDm = null
+      function roomIdFor(a,b){ return [a,b].sort().join('_') }
+
+      async function openDmWith(uid, profile){
+        const me = auth.currentUser
+        if(!me){ alert('Bạn phải đăng nhập để nhắn riêng'); return }
+        if(uid===me.uid){ alert('Không thể tự nhắn cho mình'); return }
+        const rid = roomIdFor(me.uid, uid)
+        currentDmRoom = rid
+        dmName.textContent = profile?.displayName||profile?.name||'Ẩn danh'
+        dmAvatar.src = profile?.photo||''
+        dmUid.textContent = `UID: ${uid}`
+        // load messages
+        if(unsubscribeDm) unsubscribeDm()
+        const dmRef = collection(db, 'private_rooms', rid, 'messages')
+        const dmQ = query(dmRef, orderBy('createdAt','asc'))
+        dmMessages.innerHTML = ''
+        unsubscribeDm = onSnapshot(dmQ, snap=>{
+          dmMessages.innerHTML=''
+          snap.docs.forEach(d=>{
+            const data = d.data(); const who = data.uid===me.uid? 'Bạn': (profile?.displayName||'')
+            const el = document.createElement('div'); el.className='p-2'; el.innerHTML = `<div class="text-xs text-neutral-400">${who}</div><div class="mt-1">${esc(data.text)}</div>`
+            dmMessages.appendChild(el)
+          })
+          dmMessages.scrollTop = dmMessages.scrollHeight
+        })
+        dmModal.classList.remove('hidden')
+      }
+
+      dmForm.addEventListener('submit', async(e)=>{ e.preventDefault(); if(!currentDmRoom){ alert('Không có cuộc trò chuyện'); return } const me = auth.currentUser; if(!me){ alert('Phải đăng nhập'); return } const txt = dmText.value.trim(); if(!txt) return; try{ await addDoc(collection(db,'private_rooms',currentDmRoom,'messages'),{ uid:me.uid, text:txt, createdAt:serverTimestamp() }); dmText.value=''; }catch(e){ console.error(e); alert('Gửi thất bại') } })
+      closeDm.addEventListener('click', ()=>{ if(unsubscribeDm) unsubscribeDm(); unsubscribeDm=null; currentDmRoom=null; dmModal.classList.add('hidden') })
+
+      // Hook: when clicking a username in chat, we call openProfile(uid) via makeUserClickable above
+
+      // Small UX: clicking outside menu closes it
+      document.addEventListener('click',(e)=>{ if(!menuPanel.contains(e.target) && !menuBtn.contains(e.target)) menuPanel.classList.add('hidden') })
+
+      // Expose some helpers for debug
+      window.OneChat = { openProfile, saveProfile, postBlog }
+    </script>
+  </body>
+</html>
