@@ -4,32 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - One Chat</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
-    <!-- Firebase CDN (App + Database + Auth) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 </head>
 <body class="flex flex-col min-h-screen transition-colors duration-300">
-    <!-- Navigation Bar -->
     <nav class="text-white p-4 flex items-center justify-between gap-2">
         <h1 class="text-xl sm:text-2xl font-bold">Profile</h1>
-        <div class="flex space-x-2">
-            <a href="index.html" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Back to Chat</a>
-            <button id="profile-button" class="hidden bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Edit Profile</button>
+        <button id="menu-button" class="sm:hidden p-2 text-white hover:bg-blue-700 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+        </button>
+        <div id="menu" class="hidden sm:flex sm:items-center sm:space-x-4 bg-blue-800 sm:bg-transparent p-4 sm:p-0 fixed top-0 right-0 h-full flex-col sm:flex-row">
+            <div id="tabs" class="flex sm:overflow-x-auto sm:max-w-[calc(100vw-200px)] border-b border-gray-600 whitespace-nowrap">
+                <div id="tab-functions" class="tab active">Functions</div>
+                <div id="tab-customize" class="tab">Customize</div>
+                <div id="tab-notifications" class="tab">Notifications</div>
+            </div>
+            <div id="functions-content" class="tab-content active p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <div class="flex items-center space-x-2">
+                    <img id="user-avatar" class="w-8 h-8 rounded-full hidden" src="" alt="Avatar">
+                    <div id="user-status" class="text-xs sm:text-sm hidden">Signed in as: <span id="user-name"></span></div>
+                </div>
+                <div id="connection-status" class="text-xs sm:text-sm">Connecting...</div>
+                <button id="box-chat-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">Box Chat</button>
+                <button id="profile-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">My Profile</button>
+                <button id="auth-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">Sign in with Google</button>
+            </div>
+            <div id="customize-content" class="tab-content p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-2">
+                <button id="theme-toggle" class="bg-gray-200 dark:bg-gray-600 text-blue-600 dark:text-white px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 text-sm">
+                    Toggle Dark Mode
+                </button>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="bg-color" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Background:</label>
+                    <input type="color" id="bg-color" class="rounded" value="#f3f4f6">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="nav-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Navbar:</label>
+                    <input type="color" id="nav-bg" class="rounded" value="#2563eb">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="message-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Messages:</label>
+                    <input type="color" id="message-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="input-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Input:</label>
+                    <input type="color" id="input-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="font-size" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Font Size:</label>
+                    <select id="font-size" class="border rounded p-1 text-sm">
+                        <option value="0.9rem">Small</option>
+                        <option value="1rem" selected>Medium</option>
+                        <option value="1.1rem">Large</option>
+                    </select>
+                </div>
+            </div>
+            <div id="notifications-content" class="tab-content p-4 sm:p-0 flex flex-col space-y-2 max-h-64 overflow-y-auto">
+                <div id="notifications-list" class="space-y-2"></div>
+            </div>
         </div>
     </nav>
 
-    <!-- Profile Content -->
     <div class="flex-1 p-4 max-w-4xl mx-auto">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
             <div class="flex items-center space-x-4 mb-4">
                 <img id="avatar-view" class="w-24 h-24 rounded-full object-cover" src="https://onemdca.vercel.app/chat2/img/male.png" alt="Avatar">
                 <div>
                     <h2 id="display-name-view" class="text-2xl font-bold"></h2>
+                    <p class="text-sm text-gray-500"><span id="follower-count">0</span> Followers | <span id="following-count">0</span> Following</p>
                     <button id="follow-button" class="hidden bg-blue-600 text-white px-4 py-1 rounded-lg mt-2">Follow</button>
+                    <button id="start-private-chat" class="hidden bg-green-600 text-white px-4 py-1 rounded-lg mt-2">Chat Privately</button>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -40,7 +88,6 @@
             </div>
         </div>
 
-        <!-- Edit Profile Form -->
         <div id="edit-profile-form" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
             <h3 class="text-lg font-bold mb-4">Edit Profile</h3>
             <div class="space-y-4">
@@ -70,7 +117,6 @@
             </div>
         </div>
 
-        <!-- Tabs -->
         <div class="flex border-b border-gray-600 mb-4">
             <div id="tab-blog" class="tab active">Blog</div>
             <div id="tab-chats" class="tab hidden">Private Chats</div>
@@ -90,7 +136,6 @@
 
     <script src="app.js"></script>
     <script>
-        // Profile-specific logic
         const urlParams = new URLSearchParams(window.location.search);
         const profileUid = urlParams.get('uid');
         const currentUser = firebase.auth().currentUser;
@@ -117,8 +162,15 @@
                 document.getElementById('uid-view').textContent = uid;
                 document.getElementById('avatar-view').src = data.avatar || (data.gender === 'male' ? 'https://onemdca.vercel.app/chat2/img/male.png' : 'https://onemdca.vercel.app/chat2/img/female.jpg');
 
+                // Load follower and following counts
+                database.ref(`users/${uid}/following`).once('value').then((snap) => {
+                    document.getElementById('following-count').textContent = snap.numChildren() || 0;
+                });
+                database.ref('users').orderByChild(`following/${uid}`).equalTo(true).once('value').then((snap) => {
+                    document.getElementById('follower-count').textContent = snap.numChildren() || 0;
+                });
+
                 if (isOwnProfile) {
-                    document.getElementById('profile-button').classList.remove('hidden');
                     document.getElementById('edit-profile-form').classList.remove('hidden');
                     document.getElementById('post-blog-form').classList.remove('hidden');
                     document.getElementById('tab-chats').classList.remove('hidden');
@@ -129,14 +181,14 @@
                     document.getElementById('avatar-custom').value = data.avatar || '';
                 } else if (currentUser) {
                     document.getElementById('follow-button').classList.remove('hidden');
+                    document.getElementById('start-private-chat').classList.remove('hidden');
                     checkFollowStatus(currentUser.uid, uid);
+                    document.getElementById('start-private-chat').addEventListener('click', () => {
+                        window.location.href = `index.html?chatWith=${uid}`;
+                    });
                 }
             });
         }
-
-        document.getElementById('profile-button').addEventListener('click', () => {
-            document.getElementById('edit-profile-form').classList.toggle('hidden');
-        });
 
         document.getElementById('save-profile').addEventListener('click', (e) => {
             e.preventDefault();
@@ -171,7 +223,9 @@
                 postsRef.push({
                     title,
                     content,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    likes: 0,
+                    dislikes: 0
                 }).then(() => {
                     document.getElementById('blog-title').value = '';
                     document.getElementById('blog-content').value = '';
@@ -197,6 +251,14 @@
                     postDiv.innerHTML = `
                         <h4 class="font-bold text-lg">${sanitizeHTML(post.title)}</h4>
                         <p class="text-gray-700 dark:text-gray-300">${sanitizeHTML(post.content)}</p>
+                        <div class="flex space-x-4 mt-2">
+                            <button class="like-button text-sm" data-postid="${child.key}">
+                                Like (<span class="like-count">${post.likes || 0}</span>)
+                            </button>
+                            <button class="dislike-button text-sm" data-postid="${child.key}">
+                                Dislike (<span class="dislike-count">${post.dislikes || 0}</span>)
+                            </button>
+                        </div>
                         <span class="text-xs text-gray-500">${new Date(post.timestamp).toLocaleString()}</span>
                     `;
                     if (isOwn) {
@@ -213,6 +275,41 @@
                     }
                     container.appendChild(postDiv);
                 });
+
+                // Add event listeners for like/dislike buttons
+                document.querySelectorAll('.like-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const postId = button.dataset.postid;
+                        handleLikeDislike(uid, postId, 'likes');
+                    });
+                });
+                document.querySelectorAll('.dislike-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const postId = button.dataset.postid;
+                        handleLikeDislike(uid, postId, 'dislikes');
+                    });
+                });
+            });
+        }
+
+        function handleLikeDislike(uid, postId, type) {
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) {
+                alert('Please sign in to like/dislike posts.');
+                return;
+            }
+            const postRef = database.ref(`users/${uid}/posts/${postId}`);
+            const userLikeRef = database.ref(`users/${uid}/posts/${postId}/${type}/${currentUser.uid}`);
+            userLikeRef.once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    userLikeRef.remove().then(() => {
+                        postRef.child(type).transaction((count) => (count || 0) - 1);
+                    });
+                } else {
+                    userLikeRef.set(true).then(() => {
+                        postRef.child(type).transaction((count) => (count || 0) + 1);
+                    });
+                }
             });
         }
 
@@ -263,10 +360,12 @@
                 if (snapshot.exists()) {
                     followRef.remove().then(() => {
                         checkFollowStatus(currentUid, targetUid);
+                        document.getElementById('follower-count').textContent = parseInt(document.getElementById('follower-count').textContent) - 1;
                     });
                 } else {
                     followRef.set(true).then(() => {
                         checkFollowStatus(currentUid, targetUid);
+                        document.getElementById('follower-count').textContent = parseInt(document.getElementById('follower-count').textContent) + 1;
                     });
                 }
             });

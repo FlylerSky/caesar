@@ -1,4 +1,3 @@
-// Firebase configuration (Replace with your own)
 const firebaseConfig = {
     apiKey: "AIzaSyA4ace9iq9tr66MbJiI81Cuq8ruu1SnfYg",
     authDomain: "onichat-35008.firebaseapp.com",
@@ -9,26 +8,26 @@ const firebaseConfig = {
     appId: "1:712555244409:web:6c1a4ac156be18593ddda8"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
 const messagesRef = database.ref('messages');
 
-// Google Auth Provider
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// DOM elements (common)
 const htmlRoot = document.getElementById('html-root');
 const menuButton = document.getElementById('menu-button');
 const menu = document.getElementById('menu');
-const tabBoxChat = document.getElementById('tab-boxchat');
-const tabSettings = document.getElementById('tab-settings');
-const boxChatContent = document.getElementById('boxchat-content');
-const settingsContent = document.getElementById('settings-content');
+const tabFunctions = document.getElementById('tab-functions');
+const tabCustomize = document.getElementById('tab-customize');
+const tabNotifications = document.getElementById('tab-notifications');
+const functionsContent = document.getElementById('functions-content');
+const customizeContent = document.getElementById('customize-content');
+const notificationsContent = document.getElementById('notifications-content');
 const connectionStatus = document.getElementById('connection-status');
 const userStatus = document.getElementById('user-status');
 const userName = document.getElementById('user-name');
+const userAvatar = document.getElementById('user-avatar');
 const authButton = document.getElementById('auth-button');
 const themeToggle = document.getElementById('theme-toggle');
 const inputArea = document.getElementById('input-area');
@@ -41,6 +40,9 @@ const messageBgInput = document.getElementById('message-bg');
 const inputBgInput = document.getElementById('input-bg');
 const fontSizeSelect = document.getElementById('font-size');
 const profileButton = document.getElementById('profile-button');
+const boxChatButton = document.getElementById('box-chat-button');
+const boxChatModal = document.getElementById('box-chat-modal');
+const boxChatClose = document.getElementById('box-chat-close');
 const boxChatList = document.getElementById('box-chat-list');
 const privateChatModal = document.getElementById('private-chat-modal');
 const privateChatClose = document.getElementById('private-chat-close');
@@ -49,7 +51,6 @@ const privateMessagesDiv = document.getElementById('private-messages');
 const privateMessageInput = document.getElementById('private-message-input');
 const privateSendButton = document.getElementById('private-send-button');
 
-// Load saved customization
 const savedTheme = localStorage.getItem('theme') || 'light';
 htmlRoot.classList.remove('light', 'dark');
 htmlRoot.classList.add(savedTheme);
@@ -62,14 +63,12 @@ messageBgInput.value = savedCustomizations.messageBg || (savedTheme === 'light' 
 inputBgInput.value = savedCustomizations.inputBg || (savedTheme === 'light' ? '#ffffff' : '#374151');
 fontSizeSelect.value = savedCustomizations.fontSize || '1rem';
 
-// Apply saved customizations
 document.documentElement.style.setProperty('--bg-color', bgColorInput.value);
 document.documentElement.style.setProperty('--nav-bg', navBgInput.value);
 document.documentElement.style.setProperty('--message-bg', messageBgInput.value);
 document.documentElement.style.setProperty('--input-bg', inputBgInput.value);
 document.documentElement.style.setProperty('--message-font-size', fontSizeSelect.value);
 
-// Save and apply color customizations
 function saveCustomizations() {
     const customizations = {
         bgColor: bgColorInput.value,
@@ -86,14 +85,12 @@ function saveCustomizations() {
     document.documentElement.style.setProperty('--message-font-size', fontSizeSelect.value);
 }
 
-// Event listeners for customization
 bgColorInput.addEventListener('input', saveCustomizations);
 navBgInput.addEventListener('input', saveCustomizations);
 messageBgInput.addEventListener('input', saveCustomizations);
 inputBgInput.addEventListener('input', saveCustomizations);
 fontSizeSelect.addEventListener('change', saveCustomizations);
 
-// Dark mode toggle
 themeToggle.addEventListener('click', () => {
     const newTheme = htmlRoot.classList.contains('light') ? 'dark' : 'light';
     htmlRoot.classList.remove('light', 'dark');
@@ -108,34 +105,43 @@ themeToggle.addEventListener('click', () => {
     menu.classList.add('hidden');
 });
 
-// Menu toggle for mobile
 menuButton.addEventListener('click', () => {
     menu.classList.toggle('hidden');
 });
 
-// Close menu when clicking outside (mobile only)
 document.addEventListener('click', (e) => {
     if (!menu.contains(e.target) && !menuButton.contains(e.target) && window.innerWidth < 640) {
         menu.classList.add('hidden');
     }
 });
 
-// Tab switching
-tabBoxChat.addEventListener('click', () => {
-    tabBoxChat.classList.add('active');
-    tabSettings.classList.remove('active');
-    boxChatContent.classList.add('active');
-    settingsContent.classList.remove('active');
+tabFunctions.addEventListener('click', () => {
+    tabFunctions.classList.add('active');
+    tabCustomize.classList.remove('active');
+    tabNotifications.classList.remove('active');
+    functionsContent.classList.add('active');
+    customizeContent.classList.remove('active');
+    notificationsContent.classList.remove('active');
 });
 
-tabSettings.addEventListener('click', () => {
-    tabSettings.classList.add('active');
-    tabBoxChat.classList.remove('active');
-    settingsContent.classList.add('active');
-    boxChatContent.classList.remove('active');
+tabCustomize.addEventListener('click', () => {
+    tabCustomize.classList.add('active');
+    tabFunctions.classList.remove('active');
+    tabNotifications.classList.remove('active');
+    customizeContent.classList.add('active');
+    functionsContent.classList.remove('active');
+    notificationsContent.classList.remove('active');
 });
 
-// Monitor Firebase connection status
+tabNotifications.addEventListener('click', () => {
+    tabNotifications.classList.add('active');
+    tabFunctions.classList.remove('active');
+    tabCustomize.classList.remove('active');
+    notificationsContent.classList.add('active');
+    functionsContent.classList.remove('active');
+    customizeContent.classList.remove('active');
+});
+
 database.ref('.info/connected').on('value', (snapshot) => {
     if (snapshot.val()) {
         connectionStatus.textContent = 'Connected';
@@ -148,16 +154,22 @@ database.ref('.info/connected').on('value', (snapshot) => {
     }
 });
 
-// Handle authentication state
 auth.onAuthStateChanged((user) => {
     if (user) {
         userStatus.classList.remove('hidden');
         userName.textContent = user.displayName || 'Anonymous';
+        database.ref(`users/${user.uid}`).once('value').then((snapshot) => {
+            const data = snapshot.val() || {};
+            userAvatar.src = data.avatar || (data.gender === 'male' ? 'https://onemdca.vercel.app/chat2/img/male.png' : 'https://onemdca.vercel.app/chat2/img/female.jpg');
+            userAvatar.classList.remove('hidden');
+        });
         authButton.textContent = 'Sign Out';
         inputArea.classList.remove('hidden');
         sendButton.disabled = false;
         profileButton.disabled = false;
+        boxChatButton.disabled = false;
         loadBoxChats(user.uid);
+        loadNotifications(user.uid);
         const urlParams = new URLSearchParams(window.location.search);
         const chatWith = urlParams.get('chatWith');
         if (chatWith) {
@@ -169,15 +181,16 @@ auth.onAuthStateChanged((user) => {
         }
     } else {
         userStatus.classList.add('hidden');
+        userAvatar.classList.add('hidden');
         authButton.textContent = 'Sign in with Google';
         inputArea.classList.add('hidden');
         sendButton.disabled = true;
         profileButton.disabled = true;
+        boxChatButton.disabled = true;
     }
     updateSendButton();
 });
 
-// Sign in/out button handler
 authButton.addEventListener('click', () => {
     if (auth.currentUser) {
         auth.signOut().catch((error) => {
@@ -185,7 +198,13 @@ authButton.addEventListener('click', () => {
             alert('Failed to sign out.');
         });
     } else {
-        auth.signInWithPopup(provider).catch((error) => {
+        auth.signInWithPopup(provider).then((result) => {
+            const user = result.user;
+            database.ref(`users/${user.uid}`).update({
+                displayName: user.displayName || 'Anonymous',
+                email: user.email
+            });
+        }).catch((error) => {
             console.error('Sign in error:', error);
             alert('Failed to sign in: ' + error.message);
         });
@@ -193,7 +212,6 @@ authButton.addEventListener('click', () => {
     menu.classList.add('hidden');
 });
 
-// Handle sending messages (only if authenticated)
 sendButton.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !sendButton.disabled) {
@@ -211,21 +229,25 @@ function sendMessage() {
     }
 
     const timestamp = Date.now();
-    messagesRef.push({
-        uid: user.uid,
-        name: user.displayName || 'Anonymous',
-        message: message,
-        timestamp: timestamp
-    }).then(() => {
-        messageInput.value = '';
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }).catch((error) => {
-        console.error('Error sending message:', error);
-        alert('Failed to send message. Please try again.');
+    database.ref(`users/${user.uid}`).once('value').then((snapshot) => {
+        const userData = snapshot.val();
+        messagesRef.push({
+            uid: user.uid,
+            name: user.displayName || 'Anonymous',
+            message: message,
+            timestamp: timestamp,
+            avatar: userData?.avatar,
+            gender: userData?.gender
+        }).then(() => {
+            messageInput.value = '';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }).catch((error) => {
+            console.error('Error sending message:', error);
+            alert('Failed to send message. Please try again.');
+        });
     });
 }
 
-// Listen for new messages
 messagesRef.orderByChild('timestamp').limitToLast(50).on('child_added', (snapshot) => {
     const data = snapshot.val();
     if (data && data.name && data.message) {
@@ -248,7 +270,6 @@ messagesRef.orderByChild('timestamp').limitToLast(50).on('child_added', (snapsho
     }
 });
 
-// Click on user name to view profile
 messagesDiv.addEventListener('click', (e) => {
     if (e.target.classList.contains('user-name')) {
         const uid = e.target.dataset.uid;
@@ -256,14 +277,12 @@ messagesDiv.addEventListener('click', (e) => {
     }
 });
 
-// Basic HTML sanitization to prevent XSS
 function sanitizeHTML(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
-// Enable/disable send button based on input
 function updateSendButton() {
     const message = messageInput.value.trim();
     sendButton.disabled = !message || !auth.currentUser || connectionStatus.textContent !== 'Connected';
@@ -271,18 +290,33 @@ function updateSendButton() {
 
 messageInput.addEventListener('input', updateSendButton);
 
-// Initialize button state
 updateSendButton();
 
-// Profile button handler
 profileButton.addEventListener('click', () => {
     const user = auth.currentUser;
     if (user) {
         window.location.href = `profile.html?uid=${user.uid}`;
+    } else {
+        alert('Please sign in to view your profile.');
+    }
+    menu.classList.add('hidden');
+});
+
+boxChatButton.addEventListener('click', () => {
+    boxChatModal.style.display = 'block';
+    menu.classList.add('hidden');
+});
+
+boxChatClose.addEventListener('click', () => {
+    boxChatModal.style.display = 'none';
+});
+
+window.addEventListener('click', (e) => {
+    if (e.target === boxChatModal) {
+        boxChatModal.style.display = 'none';
     }
 });
 
-// Load box chats
 function loadBoxChats(uid) {
     const chatsRef = database.ref('chats');
     chatsRef.orderByChild('timestamp').on('value', (snapshot) => {
@@ -306,7 +340,33 @@ function loadBoxChats(uid) {
     });
 }
 
-// Open private chat
+function loadNotifications(uid) {
+    const notificationsList = document.getElementById('notifications-list');
+    notificationsList.innerHTML = '';
+    const chatsRef = database.ref('chats');
+    chatsRef.orderByChild('timestamp').on('child_added', (snapshot) => {
+        const chatId = snapshot.key;
+        if (chatId.includes(uid)) {
+            const otherUid = chatId.replace(uid, '').replace('_', '');
+            database.ref(`users/${otherUid}`).once('value').then((userSnapshot) => {
+                const otherName = userSnapshot.val()?.displayName || 'Anonymous';
+                database.ref(`chats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1).on('child_added', (msgSnapshot) => {
+                    const msgData = msgSnapshot.val();
+                    if (msgData.uid !== uid) {
+                        const notif = document.createElement('div');
+                        notif.classList.add('notification');
+                        notif.innerHTML = `New message from ${sanitizeHTML(otherName)}: ${sanitizeHTML(msgData.message)}`;
+                        notif.addEventListener('click', () => {
+                            openPrivateChat(chatId, otherName);
+                        });
+                        notificationsList.prepend(notif);
+                    }
+                });
+            });
+        }
+    });
+}
+
 function openPrivateChat(chatId, otherName) {
     privateChatUser.textContent = otherName;
     privateChatModal.style.display = 'block';
@@ -315,7 +375,6 @@ function openPrivateChat(chatId, otherName) {
     menu.classList.add('hidden');
 }
 
-// Private chat modal handlers
 privateChatClose.addEventListener('click', () => {
     privateChatModal.style.display = 'none';
 });
@@ -326,7 +385,6 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// Load private messages
 function loadPrivateMessages(chatId) {
     privateMessagesDiv.innerHTML = '';
     const privateMessagesRef = database.ref(`chats/${chatId}/messages`);
@@ -349,7 +407,6 @@ function loadPrivateMessages(chatId) {
     });
 }
 
-// Send private message
 privateSendButton.addEventListener('click', sendPrivateMessage);
 privateMessageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
