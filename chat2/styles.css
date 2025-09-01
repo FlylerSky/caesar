@@ -103,6 +103,13 @@ nav {
     text-decoration: none;
     cursor: pointer;
 }
+/* Profile-specific styles */
+#avatar-view {
+    border: 2px solid var(--border-color);
+}
+#edit-profile-form {
+    transition: all 0.3s ease;
+}
 /* Responsive adjustments */
 @media (max-width: 640px) {
     #chat-container {
@@ -150,6 +157,10 @@ nav {
     .modal-content {
         width: 95%;
         margin: 20% auto;
+    }
+    #avatar-view {
+        width: 80px;
+        height: 80px;
     }
 }
 @media (min-width: 640px) {

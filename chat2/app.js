@@ -100,13 +100,12 @@ themeToggle.addEventListener('click', () => {
     htmlRoot.classList.add(newTheme);
     themeToggle.textContent = newTheme === 'light' ? 'Dark Mode' : 'Light Mode';
     localStorage.setItem('theme', newTheme);
-    // Reset colors to theme defaults if switching
     bgColorInput.value = newTheme === 'light' ? '#f3f4f6' : '#1f2937';
     navBgInput.value = newTheme === 'light' ? '#2563eb' : '#1e40af';
     messageBgInput.value = newTheme === 'light' ? '#ffffff' : '#374151';
     inputBgInput.value = newTheme === 'light' ? '#ffffff' : '#374151';
     saveCustomizations();
-    menu.classList.add('hidden'); // Close menu after action
+    menu.classList.add('hidden');
 });
 
 // Menu toggle for mobile
@@ -152,7 +151,6 @@ database.ref('.info/connected').on('value', (snapshot) => {
 // Handle authentication state
 auth.onAuthStateChanged((user) => {
     if (user) {
-        // User is signed in
         userStatus.classList.remove('hidden');
         userName.textContent = user.displayName || 'Anonymous';
         authButton.textContent = 'Sign Out';
@@ -160,8 +158,16 @@ auth.onAuthStateChanged((user) => {
         sendButton.disabled = false;
         profileButton.disabled = false;
         loadBoxChats(user.uid);
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatWith = urlParams.get('chatWith');
+        if (chatWith) {
+            database.ref(`users/${chatWith}`).once('value').then((snapshot) => {
+                const otherName = snapshot.val()?.displayName || 'Anonymous';
+                const chatId = [user.uid, chatWith].sort().join('_');
+                openPrivateChat(chatId, otherName);
+            });
+        }
     } else {
-        // User is signed out
         userStatus.classList.add('hidden');
         authButton.textContent = 'Sign in with Google';
         inputArea.classList.add('hidden');
@@ -184,7 +190,7 @@ authButton.addEventListener('click', () => {
             alert('Failed to sign in: ' + error.message);
         });
     }
-    menu.classList.add('hidden'); // Close menu after action
+    menu.classList.add('hidden');
 });
 
 // Handle sending messages (only if authenticated)
@@ -224,12 +230,15 @@ messagesRef.orderByChild('timestamp').limitToLast(50).on('child_added', (snapsho
     const data = snapshot.val();
     if (data && data.name && data.message) {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', 'p-3', 'rounded-lg', 'shadow', 'max-w-full', 'sm:max-w-2xl');
+        messageElement.classList.add('message', 'p-3', 'rounded-lg', 'shadow', 'max-w-full', 'sm:max-w-2xl', 'bg-white', 'dark:bg-gray-800');
         messageElement.innerHTML = `
             <div class="flex justify-between items-start">
-                <div>
-                    <span class="font-bold text-blue-600 dark:text-blue-400 cursor-pointer user-name" data-uid="${sanitizeHTML(data.uid)}">${sanitizeHTML(data.name)}</span>:
-                    <span class="message-text">${sanitizeHTML(data.message)}</span>
+                <div class="flex items-center space-x-2">
+                    <img src="${data.avatar || (data.gender === 'male' ? 'https://onemdca.vercel.app/chat2/img/male.png' : 'https://onemdca.vercel.app/chat2/img/female.jpg')}" class="w-8 h-8 rounded-full">
+                    <div>
+                        <span class="font-bold text-blue-600 dark:text-blue-400 cursor-pointer user-name" data-uid="${sanitizeHTML(data.uid)}">${sanitizeHTML(data.name)}</span>:
+                        <span class="message-text">${sanitizeHTML(data.message)}</span>
+                    </div>
                 </div>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${new Date(data.timestamp).toLocaleTimeString()}</span>
             </div>
@@ -285,7 +294,7 @@ function loadBoxChats(uid) {
                 database.ref(`users/${otherUid}`).once('value').then((userSnapshot) => {
                     const otherName = userSnapshot.val()?.displayName || 'Anonymous';
                     const chatItem = document.createElement('div');
-                    chatItem.classList.add('cursor-pointer', 'p-2', 'border', 'rounded');
+                    chatItem.classList.add('cursor-pointer', 'p-2', 'border', 'rounded', 'bg-white', 'dark:bg-gray-800');
                     chatItem.textContent = `Chat with ${otherName}`;
                     chatItem.addEventListener('click', () => {
                         openPrivateChat(chatId, otherName);
@@ -325,10 +334,13 @@ function loadPrivateMessages(chatId) {
         const data = snapshot.val();
         if (data) {
             const messageElement = document.createElement('div');
-            messageElement.classList.add('p-2', 'border-b');
+            messageElement.classList.add('p-2', 'border-b', 'bg-white', 'dark:bg-gray-800');
             messageElement.innerHTML = `
-                <span class="font-bold">${sanitizeHTML(data.name)}:</span>
-                ${sanitizeHTML(data.message)}
+                <div class="flex items-center space-x-2">
+                    <img src="${data.avatar || (data.gender === 'male' ? 'https://onemdca.vercel.app/chat2/img/male.png' : 'https://onemdca.vercel.app/chat2/img/female.jpg')}" class="w-6 h-6 rounded-full">
+                    <span class="font-bold">${sanitizeHTML(data.name)}:</span>
+                    ${sanitizeHTML(data.message)}
+                </div>
                 <span class="text-xs text-gray-500">${new Date(data.timestamp).toLocaleTimeString()}</span>
             `;
             privateMessagesDiv.appendChild(messageElement);
@@ -353,17 +365,22 @@ function sendPrivateMessage() {
     if (user && message) {
         const privateMessagesRef = database.ref(`chats/${chatId}/messages`);
         const timestamp = Date.now();
-        privateMessagesRef.push({
-            uid: user.uid,
-            name: user.displayName || 'Anonymous',
-            message: message,
-            timestamp: timestamp
-        }).then(() => {
-            privateMessageInput.value = '';
-            privateMessagesDiv.scrollTop = privateMessagesDiv.scrollHeight;
-        }).catch((error) => {
-            console.error('Error sending private message:', error);
-            alert('Failed to send private message.');
+        database.ref(`users/${user.uid}`).once('value').then((snapshot) => {
+            const userData = snapshot.val();
+            privateMessagesRef.push({
+                uid: user.uid,
+                name: user.displayName || 'Anonymous',
+                message: message,
+                timestamp: timestamp,
+                avatar: userData?.avatar,
+                gender: userData?.gender
+            }).then(() => {
+                privateMessageInput.value = '';
+                privateMessagesDiv.scrollTop = privateMessagesDiv.scrollHeight;
+            }).catch((error) => {
+                console.error('Error sending private message:', error);
+                alert('Failed to send private message.');
+            });
         });
     } else {
         alert('Please enter a message.');

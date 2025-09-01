@@ -16,40 +16,75 @@
     <!-- Navigation Bar -->
     <nav class="text-white p-4 flex items-center justify-between gap-2">
         <h1 class="text-xl sm:text-2xl font-bold">Profile</h1>
-        <a href="index.html" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Back to Chat</a>
+        <div class="flex space-x-2">
+            <a href="index.html" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Back to Chat</a>
+            <button id="profile-button" class="hidden bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Edit Profile</button>
+        </div>
     </nav>
 
     <!-- Profile Content -->
-    <div class="flex-1 p-4 max-w-3xl mx-auto">
-        <h2 id="profile-title" class="text-lg font-bold mb-4">User Profile</h2>
-        <div id="profile-info" class="space-y-2 mb-6">
-            <p><strong>Display Name:</strong> <span id="display-name-view"></span></p>
-            <p><strong>Birthday:</strong> <span id="birthday-view"></span></p>
-            <p><strong>Gender:</strong> <span id="gender-view"></span></p>
-            <p><strong>Country:</strong> <span id="country-view"></span></p>
-            <p><strong>UID:</strong> <span id="uid-view"></span></p>
+    <div class="flex-1 p-4 max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex items-center space-x-4 mb-4">
+                <img id="avatar-view" class="w-24 h-24 rounded-full object-cover" src="https://onemdca.vercel.app/chat2/img/male.png" alt="Avatar">
+                <div>
+                    <h2 id="display-name-view" class="text-2xl font-bold"></h2>
+                    <button id="follow-button" class="hidden bg-blue-600 text-white px-4 py-1 rounded-lg mt-2">Follow</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <p><strong>Gender:</strong> <span id="gender-view"></span></p>
+                <p><strong>Birthday:</strong> <span id="birthday-view"></span></p>
+                <p><strong>Country:</strong> <span id="country-view"></span></p>
+                <p><strong>UID:</strong> <span id="uid-view"></span></p>
+            </div>
         </div>
-        <div id="edit-profile-form" class="hidden space-y-2 mb-6">
-            <input id="display-name" type="text" placeholder="Display Name" class="border rounded p-2 w-full">
-            <input id="birthday" type="date" class="border rounded p-2 w-full">
-            <select id="gender" class="border rounded p-2 w-full">
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-            </select>
-            <input id="country" type="text" placeholder="Country" class="border rounded p-2 w-full">
-            <button id="save-profile" class="bg-blue-600 text-white px-4 py-2 rounded">Save Profile</button>
+
+        <!-- Edit Profile Form -->
+        <div id="edit-profile-form" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+            <h3 class="text-lg font-bold mb-4">Edit Profile</h3>
+            <div class="space-y-4">
+                <input id="display-name" type="text" placeholder="Display Name" class="border rounded p-2 w-full">
+                <select id="gender" class="border rounded p-2 w-full">
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+                <input id="birthday" type="date" class="border rounded p-2 w-full">
+                <select id="country" class="border rounded p-2 w-full">
+                    <option value="">Select Country</option>
+                    <option value="Vietnam">Vietnam</option>
+                    <option value="USA">USA</option>
+                    <option value="Indonesia">Indonesia</option>
+                    <option value="China">China</option>
+                    <option value="Thailand">Thailand</option>
+                    <option value="Cambodia">Cambodia</option>
+                    <option value="Other">Other</option>
+                </select>
+                <div>
+                    <label for="avatar-custom">Custom Avatar URL (Requires Key):</label>
+                    <input id="avatar-custom" type="text" placeholder="Avatar URL" class="border rounded p-2 w-full">
+                    <input id="avatar-key" type="text" placeholder="Enter Key" class="border rounded p-2 w-full mt-2">
+                </div>
+                <button id="save-profile" class="bg-blue-600 text-white px-4 py-2 rounded">Save Profile</button>
+            </div>
         </div>
-        <button id="start-private-chat" class="hidden bg-green-600 text-white px-4 py-2 rounded mb-6">Chat Privately</button>
-        <div id="blog-section">
-            <h3 class="text-md font-bold mb-2">Blog Posts</h3>
-            <div id="blog-posts" class="space-y-4"></div>
-            <div id="post-blog-form" class="hidden mt-4">
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-600 mb-4">
+            <div id="tab-blog" class="tab active">Blog</div>
+            <div id="tab-chats" class="tab hidden">Private Chats</div>
+        </div>
+        <div id="blog-content" class="tab-content active">
+            <div id="post-blog-form" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-4">
                 <input id="blog-title" type="text" placeholder="Title" class="border rounded p-2 w-full mb-2">
                 <textarea id="blog-content" placeholder="Content" class="border rounded p-2 w-full h-32 mb-2"></textarea>
                 <button id="post-blog" class="bg-blue-600 text-white px-4 py-2 rounded">Post Blog</button>
             </div>
+            <div id="blog-posts" class="space-y-4"></div>
+        </div>
+        <div id="chats-content" class="tab-content hidden">
+            <div id="private-chats-list" class="space-y-2"></div>
         </div>
     </div>
 
@@ -64,6 +99,9 @@
         if (profileUid) {
             loadProfileData(profileUid);
             loadBlogPosts(profileUid, document.getElementById('blog-posts'), isOwnProfile);
+            if (isOwnProfile) {
+                loadPrivateChats(currentUser.uid);
+            }
         } else {
             window.location.href = 'index.html';
         }
@@ -72,37 +110,50 @@
             const userRef = database.ref(`users/${uid}`);
             userRef.once('value').then((snapshot) => {
                 const data = snapshot.val() || {};
-                document.getElementById('profile-title').textContent = isOwnProfile ? 'My Profile' : `${data.displayName || 'User'}'s Profile`;
-                document.getElementById('display-name-view').textContent = data.displayName || 'Not set';
-                document.getElementById('birthday-view').textContent = data.birthday || 'Not set';
+                document.getElementById('display-name-view').textContent = data.displayName || 'Anonymous';
                 document.getElementById('gender-view').textContent = data.gender || 'Not set';
+                document.getElementById('birthday-view').textContent = data.birthday || 'Not set';
                 document.getElementById('country-view').textContent = data.country || 'Not set';
                 document.getElementById('uid-view').textContent = uid;
+                document.getElementById('avatar-view').src = data.avatar || (data.gender === 'male' ? 'https://onemdca.vercel.app/chat2/img/male.png' : 'https://onemdca.vercel.app/chat2/img/female.jpg');
 
                 if (isOwnProfile) {
+                    document.getElementById('profile-button').classList.remove('hidden');
                     document.getElementById('edit-profile-form').classList.remove('hidden');
-                    document.getElementById('display-name').value = data.displayName || '';
-                    document.getElementById('birthday').value = data.birthday || '';
-                    document.getElementById('gender').value = data.gender || '';
-                    document.getElementById('country').value = data.country || '';
                     document.getElementById('post-blog-form').classList.remove('hidden');
+                    document.getElementById('tab-chats').classList.remove('hidden');
+                    document.getElementById('display-name').value = data.displayName || '';
+                    document.getElementById('gender').value = data.gender || '';
+                    document.getElementById('birthday').value = data.birthday || '';
+                    document.getElementById('country').value = data.country || '';
+                    document.getElementById('avatar-custom').value = data.avatar || '';
                 } else if (currentUser) {
-                    document.getElementById('start-private-chat').classList.remove('hidden');
-                    document.getElementById('start-private-chat').addEventListener('click', () => {
-                        window.location.href = `index.html?chatWith=${uid}`;
-                    });
+                    document.getElementById('follow-button').classList.remove('hidden');
+                    checkFollowStatus(currentUser.uid, uid);
                 }
             });
         }
+
+        document.getElementById('profile-button').addEventListener('click', () => {
+            document.getElementById('edit-profile-form').classList.toggle('hidden');
+        });
 
         document.getElementById('save-profile').addEventListener('click', (e) => {
             e.preventDefault();
             const data = {
                 displayName: document.getElementById('display-name').value,
-                birthday: document.getElementById('birthday').value,
                 gender: document.getElementById('gender').value,
+                birthday: document.getElementById('birthday').value,
                 country: document.getElementById('country').value
             };
+            const customAvatar = document.getElementById('avatar-custom').value;
+            const avatarKey = document.getElementById('avatar-key').value;
+            if (customAvatar && avatarKey === 'experimental_key_2025') {
+                data.avatar = customAvatar;
+            } else if (customAvatar) {
+                alert('Invalid key for custom avatar.');
+                return;
+            }
             database.ref(`users/${profileUid}`).update(data).then(() => {
                 alert('Profile updated!');
                 loadProfileData(profileUid);
@@ -142,16 +193,16 @@
                 snapshot.forEach((child) => {
                     const post = child.val();
                     const postDiv = document.createElement('div');
-                    postDiv.classList.add('border', 'p-2', 'rounded');
+                    postDiv.classList.add('bg-white', 'dark:bg-gray-800', 'rounded-lg', 'shadow-lg', 'p-4');
                     postDiv.innerHTML = `
-                        <h4 class="font-bold">${sanitizeHTML(post.title)}</h4>
-                        <p>${sanitizeHTML(post.content)}</p>
+                        <h4 class="font-bold text-lg">${sanitizeHTML(post.title)}</h4>
+                        <p class="text-gray-700 dark:text-gray-300">${sanitizeHTML(post.content)}</p>
                         <span class="text-xs text-gray-500">${new Date(post.timestamp).toLocaleString()}</span>
                     `;
                     if (isOwn) {
                         const deleteBtn = document.createElement('button');
                         deleteBtn.textContent = 'Delete';
-                        deleteBtn.classList.add('bg-red-600', 'text-white', 'px-2', 'py-1', 'rounded', 'ml-2');
+                        deleteBtn.classList.add('bg-red-600', 'text-white', 'px-2', 'py-1', 'rounded', 'ml-2', 'mt-2');
                         deleteBtn.addEventListener('click', () => {
                             child.ref.remove().catch((error) => {
                                 console.error('Error deleting post:', error);
@@ -164,6 +215,76 @@
                 });
             });
         }
+
+        function loadPrivateChats(uid) {
+            const chatsRef = database.ref('chats');
+            const chatsList = document.getElementById('private-chats-list');
+            chatsRef.orderByChild('timestamp').on('value', (snapshot) => {
+                chatsList.innerHTML = '';
+                snapshot.forEach((child) => {
+                    const chatId = child.key;
+                    if (chatId.includes(uid)) {
+                        const otherUid = chatId.replace(uid, '').replace('_', '');
+                        database.ref(`users/${otherUid}`).once('value').then((userSnapshot) => {
+                            const otherName = userSnapshot.val()?.displayName || 'Anonymous';
+                            const chatItem = document.createElement('div');
+                            chatItem.classList.add('bg-white', 'dark:bg-gray-800', 'rounded-lg', 'shadow-lg', 'p-4', 'cursor-pointer');
+                            chatItem.textContent = `Chat with ${otherName}`;
+                            chatItem.addEventListener('click', () => {
+                                window.location.href = `index.html?chatWith=${otherUid}`;
+                            });
+                            chatsList.appendChild(chatItem);
+                        });
+                    }
+                });
+            });
+        }
+
+        function checkFollowStatus(currentUid, targetUid) {
+            const followRef = database.ref(`users/${currentUid}/following/${targetUid}`);
+            followRef.once('value').then((snapshot) => {
+                const followButton = document.getElementById('follow-button');
+                if (snapshot.exists()) {
+                    followButton.textContent = 'Unfollow';
+                    followButton.classList.remove('bg-blue-600');
+                    followButton.classList.add('bg-gray-400');
+                } else {
+                    followButton.textContent = 'Follow';
+                    followButton.classList.remove('bg-gray-400');
+                    followButton.classList.add('bg-blue-600');
+                }
+                followButton.onclick = () => toggleFollow(currentUid, targetUid);
+            });
+        }
+
+        function toggleFollow(currentUid, targetUid) {
+            const followRef = database.ref(`users/${currentUid}/following/${targetUid}`);
+            followRef.once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    followRef.remove().then(() => {
+                        checkFollowStatus(currentUid, targetUid);
+                    });
+                } else {
+                    followRef.set(true).then(() => {
+                        checkFollowStatus(currentUid, targetUid);
+                    });
+                }
+            });
+        }
+
+        document.getElementById('tab-blog').addEventListener('click', () => {
+            document.getElementById('tab-blog').classList.add('active');
+            document.getElementById('tab-chats').classList.remove('active');
+            document.getElementById('blog-content').classList.add('active');
+            document.getElementById('chats-content').classList.remove('active');
+        });
+
+        document.getElementById('tab-chats').addEventListener('click', () => {
+            document.getElementById('tab-chats').classList.add('active');
+            document.getElementById('tab-blog').classList.remove('active');
+            document.getElementById('chats-content').classList.add('active');
+            document.getElementById('blog-content').classList.remove('active');
+        });
 
         function sanitizeHTML(str) {
             const div = document.createElement('div');
