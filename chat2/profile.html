@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" class="light" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - One Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase CDN (App + Database + Auth) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+</head>
+<body class="flex flex-col min-h-screen transition-colors duration-300">
+    <!-- Navigation Bar -->
+    <nav class="text-white p-4 flex items-center justify-between gap-2">
+        <h1 class="text-xl sm:text-2xl font-bold">Profile</h1>
+        <a href="index.html" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100">Back to Chat</a>
+    </nav>
+
+    <!-- Profile Content -->
+    <div class="flex-1 p-4 max-w-3xl mx-auto">
+        <h2 id="profile-title" class="text-lg font-bold mb-4">User Profile</h2>
+        <div id="profile-info" class="space-y-2 mb-6">
+            <p><strong>Display Name:</strong> <span id="display-name-view"></span></p>
+            <p><strong>Birthday:</strong> <span id="birthday-view"></span></p>
+            <p><strong>Gender:</strong> <span id="gender-view"></span></p>
+            <p><strong>Country:</strong> <span id="country-view"></span></p>
+            <p><strong>UID:</strong> <span id="uid-view"></span></p>
+        </div>
+        <div id="edit-profile-form" class="hidden space-y-2 mb-6">
+            <input id="display-name" type="text" placeholder="Display Name" class="border rounded p-2 w-full">
+            <input id="birthday" type="date" class="border rounded p-2 w-full">
+            <select id="gender" class="border rounded p-2 w-full">
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
+            <input id="country" type="text" placeholder="Country" class="border rounded p-2 w-full">
+            <button id="save-profile" class="bg-blue-600 text-white px-4 py-2 rounded">Save Profile</button>
+        </div>
+        <button id="start-private-chat" class="hidden bg-green-600 text-white px-4 py-2 rounded mb-6">Chat Privately</button>
+        <div id="blog-section">
+            <h3 class="text-md font-bold mb-2">Blog Posts</h3>
+            <div id="blog-posts" class="space-y-4"></div>
+            <div id="post-blog-form" class="hidden mt-4">
+                <input id="blog-title" type="text" placeholder="Title" class="border rounded p-2 w-full mb-2">
+                <textarea id="blog-content" placeholder="Content" class="border rounded p-2 w-full h-32 mb-2"></textarea>
+                <button id="post-blog" class="bg-blue-600 text-white px-4 py-2 rounded">Post Blog</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Profile-specific logic
+        const urlParams = new URLSearchParams(window.location.search);
+        const profileUid = urlParams.get('uid');
+        const currentUser = firebase.auth().currentUser;
+        const isOwnProfile = currentUser && currentUser.uid === profileUid;
+
+        if (profileUid) {
+            loadProfileData(profileUid);
+            loadBlogPosts(profileUid, document.getElementById('blog-posts'), isOwnProfile);
+        } else {
+            window.location.href = 'index.html';
+        }
+
+        function loadProfileData(uid) {
+            const userRef = database.ref(`users/${uid}`);
+            userRef.once('value').then((snapshot) => {
+                const data = snapshot.val() || {};
+                document.getElementById('profile-title').textContent = isOwnProfile ? 'My Profile' : `${data.displayName || 'User'}'s Profile`;
+                document.getElementById('display-name-view').textContent = data.displayName || 'Not set';
+                document.getElementById('birthday-view').textContent = data.birthday || 'Not set';
+                document.getElementById('gender-view').textContent = data.gender || 'Not set';
+                document.getElementById('country-view').textContent = data.country || 'Not set';
+                document.getElementById('uid-view').textContent = uid;
+
+                if (isOwnProfile) {
+                    document.getElementById('edit-profile-form').classList.remove('hidden');
+                    document.getElementById('display-name').value = data.displayName || '';
+                    document.getElementById('birthday').value = data.birthday || '';
+                    document.getElementById('gender').value = data.gender || '';
+                    document.getElementById('country').value = data.country || '';
+                    document.getElementById('post-blog-form').classList.remove('hidden');
+                } else if (currentUser) {
+                    document.getElementById('start-private-chat').classList.remove('hidden');
+                    document.getElementById('start-private-chat').addEventListener('click', () => {
+                        window.location.href = `index.html?chatWith=${uid}`;
+                    });
+                }
+            });
+        }
+
+        document.getElementById('save-profile').addEventListener('click', (e) => {
+            e.preventDefault();
+            const data = {
+                displayName: document.getElementById('display-name').value,
+                birthday: document.getElementById('birthday').value,
+                gender: document.getElementById('gender').value,
+                country: document.getElementById('country').value
+            };
+            database.ref(`users/${profileUid}`).update(data).then(() => {
+                alert('Profile updated!');
+                loadProfileData(profileUid);
+            }).catch((error) => {
+                console.error('Error updating profile:', error);
+                alert('Failed to update profile.');
+            });
+        });
+
+        document.getElementById('post-blog').addEventListener('click', () => {
+            const title = document.getElementById('blog-title').value.trim();
+            const content = document.getElementById('blog-content').value.trim();
+            if (title && content) {
+                const postsRef = database.ref(`users/${profileUid}/posts`);
+                postsRef.push({
+                    title,
+                    content,
+                    timestamp: Date.now()
+                }).then(() => {
+                    document.getElementById('blog-title').value = '';
+                    document.getElementById('blog-content').value = '';
+                    loadBlogPosts(profileUid, document.getElementById('blog-posts'), true);
+                }).catch((error) => {
+                    console.error('Error posting blog:', error);
+                    alert('Failed to post blog.');
+                });
+            } else {
+                alert('Please enter both title and content.');
+            }
+        });
+
+        function loadBlogPosts(uid, container, isOwn) {
+            container.innerHTML = '';
+            const postsRef = database.ref(`users/${uid}/posts`);
+            postsRef.orderByChild('timestamp').on('value', (snapshot) => {
+                container.innerHTML = '';
+                snapshot.forEach((child) => {
+                    const post = child.val();
+                    const postDiv = document.createElement('div');
+                    postDiv.classList.add('border', 'p-2', 'rounded');
+                    postDiv.innerHTML = `
+                        <h4 class="font-bold">${sanitizeHTML(post.title)}</h4>
+                        <p>${sanitizeHTML(post.content)}</p>
+                        <span class="text-xs text-gray-500">${new Date(post.timestamp).toLocaleString()}</span>
+                    `;
+                    if (isOwn) {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.classList.add('bg-red-600', 'text-white', 'px-2', 'py-1', 'rounded', 'ml-2');
+                        deleteBtn.addEventListener('click', () => {
+                            child.ref.remove().catch((error) => {
+                                console.error('Error deleting post:', error);
+                                alert('Failed to delete post.');
+                            });
+                        });
+                        postDiv.appendChild(deleteBtn);
+                    }
+                    container.appendChild(postDiv);
+                });
+            });
+        }
+
+        function sanitizeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

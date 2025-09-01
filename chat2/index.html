@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="light" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase CDN (App + Database + Auth) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+</head>
+<body class="flex flex-col min-h-screen transition-colors duration-300">
+    <!-- Navigation Bar -->
+    <nav class="text-white p-4 flex items-center justify-between gap-2">
+        <h1 class="text-xl sm:text-2xl font-bold">One Chat</h1>
+        <button id="menu-button" class="sm:hidden p-2 text-white hover:bg-blue-700 rounded-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+        </button>
+        <div id="menu" class="hidden sm:flex sm:items-center sm:space-x-4 bg-blue-800 sm:bg-transparent p-4 sm:p-0 fixed top-0 right-0 h-full flex-col">
+            <div id="tabs" class="flex border-b border-gray-600 sm:hidden">
+                <div id="tab-boxchat" class="tab active">Box Chat</div>
+                <div id="tab-settings" class="tab">Settings</div>
+            </div>
+            <div id="boxchat-content" class="tab-content active p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <div id="box-chat-list" class="space-y-2"></div>
+            </div>
+            <div id="settings-content" class="tab-content p-4 sm:p-0 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-2">
+                <div id="user-status" class="text-xs sm:text-sm hidden">Signed in as: <span id="user-name"></span></div>
+                <div id="connection-status" class="text-xs sm:text-sm">Connecting...</div>
+                <button id="profile-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">My Profile</button>
+                <button id="auth-button" class="bg-white text-blue-600 px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-100 text-sm">Sign in with Google</button>
+                <button id="theme-toggle" class="bg-gray-200 dark:bg-gray-600 text-blue-600 dark:text-white px-2 sm:px-3 py-1 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 text-sm">
+                    Toggle Dark Mode
+                </button>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="bg-color" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Background:</label>
+                    <input type="color" id="bg-color" class="rounded" value="#f3f4f6">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="nav-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Navbar:</label>
+                    <input type="color" id="nav-bg" class="rounded" value="#2563eb">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="message-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Messages:</label>
+                    <input type="color" id="message-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="input-bg" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Input:</label>
+                    <input type="color" id="input-bg" class="rounded" value="#ffffff">
+                </div>
+                <div class="settings-item flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <label for="font-size" class="text-xs sm:text-sm text-white sm:text-gray-600 dark:sm:text-gray-300">Font Size:</label>
+                    <select id="font-size" class="border rounded p-1 text-sm">
+                        <option value="0.9rem">Small</option>
+                        <option value="1rem" selected>Medium</option>
+                        <option value="1.1rem">Large</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Chat Messages Area -->
+    <div id="chat-container" class="flex-1 p-2 sm:p-4 overflow-y-auto">
+        <div id="messages" class="space-y-2 sm:space-y-4 max-w-3xl mx-auto"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div id="input-area" class="p-2 sm:p-4 border-t transition-colors duration-300">
+        <div class="flex space-x-2 max-w-3xl mx-auto">
+            <input
+                id="message-input"
+                type="text"
+                placeholder="Type your message..."
+                class="flex-1 border rounded-lg p-2 sm:p-3 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxlength="200"
+            >
+            <button
+                id="send-button"
+                class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm sm:text-base"
+                disabled
+            >
+                Send
+            </button>
+        </div>
+    </div>
+
+    <!-- Private Chat Modal -->
+    <div id="private-chat-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="private-chat-close">&times;</span>
+            <h2 id="private-chat-title" class="text-lg font-bold">Private Chat with <span id="private-chat-user"></span></h2>
+            <div id="private-messages" class="space-y-2 h-64 overflow-y-auto"></div>
+            <div class="flex space-x-2 mt-2">
+                <input id="private-message-input" type="text" placeholder="Type your message..." class="flex-1 border rounded p-2">
+                <button id="private-send-button" class="bg-blue-600 text-white px-4 py-2 rounded">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
