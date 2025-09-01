@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase CDN (App + Database + Auth) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <style>
+        /* Custom styles for chat container */
+        #chat-container {
+            height: calc(100vh - 12rem);
+            overflow-y: auto;
+        }
+        /* Ensure messages don't break layout */
+        .message {
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col h-screen">
+    <!-- Navigation Bar -->
+    <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">One Chat</h1>
+        <div class="flex items-center space-x-4">
+            <div id="user-status" class="text-sm hidden">Signed in as: <span id="user-name"></span></div>
+            <div id="connection-status" class="text-sm">Connecting...</div>
+            <button id="auth-button" class="bg-white text-blue-600 px-3 py-1 rounded-lg hover:bg-gray-100"></button>
+        </div>
+    </nav>
+
+    <!-- Chat Messages Area -->
+    <div id="chat-container" class="flex-1 p-4 overflow-y-auto">
+        <div id="messages" class="space-y-4"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div id="input-area" class="bg-white p-4 border-t border-gray-300 hidden">
+        <div class="flex space-x-2">
+            <input
+                id="message-input"
+                type="text"
+                placeholder="Type your message..."
+                class="flex-1 border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxlength="200"
+            >
+            <button
+                id="send-button"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                disabled
+            >
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration (Replace with your own)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4ace9iq9tr66MbJiI81Cuq8ruu1SnfYg",
+            authDomain: "onichat-35008.firebaseapp.com",
+            databaseURL: "https://onichat-35008-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "onichat-35008",
+            storageBucket: "onichat-35008.appspot.com",
+            messagingSenderId: "712555244409",
+            appId: "1:712555244409:web:6c1a4ac156be18593ddda8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+        const messagesRef = database.ref('messages');
+
+        // Google Auth Provider
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        // DOM elements
+        const connectionStatus = document.getElementById('connection-status');
+        const userStatus = document.getElementById('user-status');
+        const userName = document.getElementById('user-name');
+        const authButton = document.getElementById('auth-button');
+        const inputArea = document.getElementById('input-area');
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Monitor Firebase connection status
+        database.ref('.info/connected').on('value', (snapshot) => {
+            if (snapshot.val()) {
+                connectionStatus.textContent = 'Connected';
+                connectionStatus.classList.remove('text-red-300');
+                connectionStatus.classList.add('text-green-300');
+            } else {
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.classList.remove('text-green-300');
+                connectionStatus.classList.add('text-red-300');
+            }
+        });
+
+        // Handle authentication state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is signed in
+                userStatus.classList.remove('hidden');
+                userName.textContent = user.displayName || 'Anonymous';
+                authButton.textContent = 'Sign Out';
+                inputArea.classList.remove('hidden');
+                sendButton.disabled = false;
+            } else {
+                // User is signed out
+                userStatus.classList.add('hidden');
+                authButton.textContent = 'Sign in with Google';
+                inputArea.classList.add('hidden');
+                sendButton.disabled = true;
+            }
+            updateSendButton();
+        });
+
+        // Sign in/out button handler
+        authButton.addEventListener('click', () => {
+            if (auth.currentUser) {
+                auth.signOut().catch((error) => {
+                    console.error('Sign out error:', error);
+                    alert('Failed to sign out.');
+                });
+            } else {
+                auth.signInWithPopup(provider).catch((error) => {
+                    console.error('Sign in error:', error);
+                    alert('Failed to sign in: ' + error.message);
+                });
+            }
+        });
+
+        // Handle sending messages (only if authenticated)
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendButton.disabled) {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const user = auth.currentUser;
+            const message = messageInput.value.trim();
+
+            if (!user || !message) {
+                alert('Please sign in and enter a message.');
+                return;
+            }
+
+            const timestamp = Date.now();
+            messagesRef.push({
+                uid: user.uid,
+                name: user.displayName || 'Anonymous',
+                message: message,
+                timestamp: timestamp
+            }).then(() => {
+                messageInput.value = '';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }).catch((error) => {
+                console.error('Error sending message:', error);
+                alert('Failed to send message. Please try again.');
+            });
+        }
+
+        // Listen for new messages
+        messagesRef.orderByChild('timestamp').limitToLast(50).on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.name && data.message) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', 'p-3', 'bg-white', 'rounded-lg', 'shadow');
+                messageElement.innerHTML = `
+                    <span class="font-bold text-blue-600">${sanitizeHTML(data.name)}</span>:
+                    ${sanitizeHTML(data.message)}
+                    <span class="text-xs text-gray-500">${new Date(data.timestamp).toLocaleTimeString()}</span>
+                `;
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
+
+        // Basic HTML sanitization to prevent XSS
+        function sanitizeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Enable/disable send button based on input
+        function updateSendButton() {
+            const message = messageInput.value.trim();
+            sendButton.disabled = !message || !auth.currentUser || connectionStatus.textContent !== 'Connected';
+        }
+
+        messageInput.addEventListener('input', updateSendButton);
+
+        // Initialize button state
+        updateSendButton();
+    </script>
+</body>
+</html>
