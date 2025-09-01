@@ -250,7 +250,7 @@ function sendMessage() {
 
 messagesRef.orderByChild('timestamp').limitToLast(50).on('child_added', (snapshot) => {
     const data = snapshot.val();
-    if (data && data.name && data.message) {
+    if (data && data.name && data.message && data.uid) {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', 'p-3', 'rounded-lg', 'shadow', 'max-w-full', 'sm:max-w-2xl', 'bg-white', 'dark:bg-gray-800');
         messageElement.innerHTML = `
@@ -365,6 +365,14 @@ function loadNotifications(uid) {
             });
         }
     });
+
+    database.ref('notifications').orderByChild('timestamp').limitToLast(10).on('child_added', (snapshot) => {
+        const notifData = snapshot.val();
+        const notif = document.createElement('div');
+        notif.classList.add('notification');
+        notif.textContent = `[System] ${notifData.message}`;
+        notificationsList.prepend(notif);
+    });
 }
 
 function openPrivateChat(chatId, otherName) {
@@ -434,6 +442,7 @@ function sendPrivateMessage() {
             }).then(() => {
                 privateMessageInput.value = '';
                 privateMessagesDiv.scrollTop = privateMessagesDiv.scrollHeight;
+                database.ref(`chats/${chatId}`).update({ timestamp });
             }).catch((error) => {
                 console.error('Error sending private message:', error);
                 alert('Failed to send private message.');

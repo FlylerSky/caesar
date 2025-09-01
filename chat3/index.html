@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>One Chat — Public Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-neutral-950 text-neutral-100">
+    <!-- Top Nav -->
+    <header class="sticky top-0 z-10 bg-neutral-900/80 backdrop-blur border-b border-neutral-800">
+      <div class="mx-auto max-w-3xl px-3 h-12 flex items-center justify-between">
+        <!-- Left: connection status -->
+        <div id="conn" class="flex items-center gap-2 text-sm select-none">
+          <span id="connDot" class="inline-block h-2.5 w-2.5 rounded-full bg-neutral-500"></span>
+          <span id="connText" class="text-neutral-400">Đang khởi động…</span>
+        </div>
+        <!-- Right: app name + auth -->
+        <div class="flex items-center gap-3">
+          <button id="loginBtn" class="text-sm px-3 py-1 rounded-xl bg-neutral-100 text-neutral-900 font-medium">Đăng nhập Google</button>
+          <img id="userAvatar" class="hidden h-8 w-8 rounded-full border border-neutral-700" />
+          <div id="appName" class="font-semibold tracking-wide">One Chat</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <main class="mx-auto max-w-3xl px-3">
+      <div id="messages" class="mt-3 mb-24 space-y-2 overflow-y-auto max-h-[calc(100dvh-10rem)] pr-1">
+        <!-- messages will render here -->
+      </div>
+    </main>
+
+    <!-- Composer -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-neutral-900/80 backdrop-blur border-t border-neutral-800">
+      <form id="composer" class="mx-auto max-w-3xl px-3 py-3 grid grid-cols-12 gap-2">
+        <input id="text" type="text" placeholder="Nhập tin nhắn…"
+               class="col-span-10 md:col-span-11 rounded-2xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-500"
+               maxlength="500" required />
+        <button id="sendBtn" type="submit"
+                class="col-span-2 md:col-span-1 rounded-2xl bg-neutral-100 text-neutral-900 font-medium px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          Gửi
+        </button>
+      </form>
+    </footer>
+
+    <!-- Firebase + App Script -->
+    <script type="module">
+      // --- Firebase SDKs (v11, modular) ---
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
+      import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js'
+      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js'
+
+      // 1) Paste your config from Firebase Console here
+      const firebaseConfig = {
+  apiKey: "AIzaSyD-TXkpROaUzr0rmf6DvchEfMTgfRCmHdU",
+  authDomain: "relifechat.firebaseapp.com",
+  projectId: "relifechat",
+  storageBucket: "relifechat.firebasestorage.app",
+  messagingSenderId: "108424998260",
+  appId: "1:108424998260:web:d1472805ee5a1c3c94d021",
+  measurementId: "G-N6VWB9GRV3"
+};
+
+      // 2) Init Firebase
+      const app = initializeApp(firebaseConfig)
+      const db = getFirestore(app)
+      const auth = getAuth(app)
+      const provider = new GoogleAuthProvider()
+
+      // --- DOM ---
+      const $ = (s) => document.querySelector(s)
+      const messagesEl = $('#messages')
+      const form = $('#composer')
+      const textInput = $('#text')
+      const sendBtn = $('#sendBtn')
+      const connDot = $('#connDot')
+      const connText = $('#connText')
+      const loginBtn = $('#loginBtn')
+      const userAvatar = $('#userAvatar')
+
+      // Connection UI helpers
+      const setStatus = (state, label) => {
+        const colors = {
+          idle: 'bg-neutral-500',
+          offline: 'bg-red-500',
+          connecting: 'bg-amber-400',
+          live: 'bg-emerald-500',
+          error: 'bg-red-600'
+        }
+        connDot.className = `inline-block h-2.5 w-2.5 rounded-full ${colors[state]||colors.idle}`
+        connText.textContent = label
+      }
+
+      // Basic online/offline detection
+      const updateOnline = () => {
+        if (!navigator.onLine) setStatus('offline', 'Ngoại tuyến (thiết bị)')
+        else setStatus('connecting', 'Đang kết nối…')
+      }
+      window.addEventListener('online', updateOnline)
+      window.addEventListener('offline', updateOnline)
+      updateOnline()
+
+      // Sanitize text simple (escape HTML)
+      const esc = (s='') => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))
+
+      // Render one message
+      function renderMsg(doc) {
+        const d = doc.data()
+        const name = esc(d.name || 'Ẩn danh')
+        const text = esc(d.text || '')
+        const t = d.createdAt?.toDate?.() || new Date()
+        const time = new Intl.DateTimeFormat('vi-VN', { hour:'2-digit', minute:'2-digit' }).format(t)
+        const avatar = d.photo || ''
+
+        const item = document.createElement('div')
+        item.className = 'flex items-start gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-3'
+        item.innerHTML = `
+          <img src="${esc(avatar)}" class="h-8 w-8 rounded-full bg-neutral-800 shrink-0" onerror="this.style.display='none'"/>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 text-xs text-neutral-400">
+              <span class="font-medium text-neutral-200">${name}</span>
+              <span>•</span>
+              <time>${time}</time>
+            </div>
+            <div class="mt-1 text-sm leading-relaxed break-words">${text}</div>
+          </div>`
+        messagesEl.appendChild(item)
+      }
+
+      // Auto-scroll to bottom gently
+      const scrollToBottom = () => {
+        messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' })
+      }
+
+      // Live query: newest first 200, but we render in ascending order
+      const msgsRef = collection(db, 'messages')
+      const q = query(msgsRef, orderBy('createdAt', 'asc'), limit(200))
+
+      let initialLoaded = false
+      onSnapshot(q, (snapshot) => {
+        if (!initialLoaded) {
+          messagesEl.innerHTML = ''
+        }
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') renderMsg(change.doc)
+        })
+        if (!initialLoaded) {
+          initialLoaded = true
+          setStatus('live', 'Trực tuyến')
+          scrollToBottom()
+        } else {
+          scrollToBottom()
+        }
+      }, (err) => {
+        console.error(err)
+        setStatus('error', 'Lỗi kết nối dữ liệu')
+      })
+
+      // Submit handler
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        if (!auth.currentUser) {
+          alert('Bạn phải đăng nhập trước khi gửi tin.')
+          return
+        }
+        const user = auth.currentUser
+        const text = textInput.value.trim()
+        if (!text) return
+
+        sendBtn.disabled = true
+        try {
+          await addDoc(msgsRef, {
+            uid: user.uid,
+            name: user.displayName || 'Ẩn danh',
+            photo: user.photoURL || null,
+            text,
+            createdAt: serverTimestamp()
+          })
+          textInput.value = ''
+          textInput.focus()
+        } catch (e) {
+          alert('Gửi thất bại. Kiểm tra kết nối rồi thử lại.')
+          console.error(e)
+        } finally {
+          sendBtn.disabled = false
+        }
+      })
+
+      // Enter to send when focused on message box
+      textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          form.requestSubmit()
+        }
+      })
+
+      // Auth state
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          loginBtn.textContent = 'Đăng xuất'
+          userAvatar.src = user.photoURL
+          userAvatar.classList.remove('hidden')
+        } else {
+          loginBtn.textContent = 'Đăng nhập'
+          userAvatar.classList.add('hidden')
+        }
+      })
+
+      loginBtn.addEventListener('click', async () => {
+        if (auth.currentUser) {
+          await signOut(auth)
+        } else {
+          try {
+            await signInWithPopup(auth, provider)
+          } catch (e) {
+            console.error(e)
+            alert('Không đăng nhập được, thử lại.')
+          }
+        }
+      })
+    </script>
+  </body>
+</html>
