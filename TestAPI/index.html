@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Google Drive API Test</title>
+    <title>Test API</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body class="bg-gray-100 p-8 font-sans">
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-xl">
@@ -45,7 +45,6 @@
         const FOLDER_ID = 'YOUR_FOLDER_ID';
         // === HẾT THÔNG TIN CẦN THAY THẾ ===
 
-        // Thêm scope để xem file, bao gồm cả nội dung (cần cho alt=media)
         const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.readonly';
 
         let tokenClient;
@@ -116,7 +115,6 @@
             fileListContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Đang tải file...</p>';
             let response;
             try {
-                // Thêm mimeType vào trường 'fields' để lấy thông tin loại file
                 response = await gapi.client.drive.files.list({
                     'q': `'${FOLDER_ID}' in parents and trashed=false`,
                     'fields': 'files(id, name, mimeType)',
@@ -142,7 +140,6 @@
                 fileTitle.textContent = file.name;
 
                 if (file.mimeType.startsWith('image/') || file.mimeType.startsWith('video/')) {
-                    // Gọi hàm để lấy và hiển thị nội dung file
                     fetchAndDisplayFile(file.id, file.mimeType, fileWrapper);
                 } else {
                     const icon = document.createElement('p');
@@ -194,24 +191,22 @@
             }
         }
 
-        // Gán sự kiện cho các nút
         authorizeButton.addEventListener('click', handleAuthClick);
         signoutButton.addEventListener('click', handleSignoutClick);
         listFilesButton.addEventListener('click', listFilesInFolder);
 
+        // Đăng ký Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered! Scope:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+            });
+        }
     </script>
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-          console.log('Service Worker registered! Scope:', registration.scope);
-        })
-        .catch(err => {
-          console.log('Service Worker registration failed:', err);
-        });
-    });
-  }
-</script>
 </body>
 </html>
