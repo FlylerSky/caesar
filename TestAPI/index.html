@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Google Drive API Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+        <h1 class="text-2xl font-bold mb-4 text-center">Thử nghiệm Google Drive API</h1>
+        
+        <div id="auth-status" class="mb-4 text-center p-2 rounded hidden"></div>
+
+        <div class="flex flex-col space-y-4 mb-6">
+            <button id="authorize_button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Đăng nhập
+            </button>
+            <button id="list_files_button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Lấy danh sách file trong thư mục
+            </button>
+            <button id="signout_button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Đăng xuất
+            </button>
+        </div>
+
+        <div id="content" class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h2 class="text-lg font-semibold mb-2">Kết quả:</h2>
+            <div id="file_list_container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <p class="text-gray-500">Bấm nút "Lấy danh sách file..." để xem kết quả.</p>
+            </div>
+        </div>
+    </div>
+
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
+    <script>
+        // === VUI LÒNG THAY THẾ CÁC GIÁ TRỊ SAU BẰNG THÔNG TIN CỦA BẠN ===
+        const CLIENT_ID = 'YOUR_CLIENT_ID';
+        const API_KEY = 'YOUR_API_KEY';
+        const FOLDER_ID = 'YOUR_FOLDER_ID';
+        // === HẾT THÔNG TIN CẦN THAY THẾ ===
+
+        // Thêm scope để xem file, bao gồm cả nội dung (cần cho alt=media)
+        const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.readonly';
+
+        let tokenClient;
+        const authorizeButton = document.getElementById('authorize_button');
+        const signoutButton = document.getElementById('signout_button');
+        const listFilesButton = document.getElementById('list_files_button');
+        const authStatusDiv = document.getElementById('auth-status');
+        const fileListContainer = document.getElementById('file_list_container');
+
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            authorizeButton.style.display = 'block';
+            listFilesButton.style.display = 'block';
+            signoutButton.style.display = 'block';
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '',
+            });
+        }
+
+        function handleAuthClick() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                updateAuthStatus(true);
+            };
+            
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+
+        function handleSignoutClick() {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken(null);
+                updateAuthStatus(false);
+            }
+        }
+
+        function updateAuthStatus(isSignedIn) {
+            if (isSignedIn) {
+                authStatusDiv.textContent = 'Đã đăng nhập thành công.';
+                authStatusDiv.className = 'mb-4 text-center p-2 rounded bg-green-200 text-green-800 block';
+            } else {
+                authStatusDiv.textContent = 'Đã đăng xuất.';
+                authStatusDiv.className = 'mb-4 text-center p-2 rounded bg-red-200 text-red-800 block';
+            }
+            fileListContainer.innerHTML = '<p class="text-gray-500">Bấm nút "Lấy danh sách file..." để xem kết quả.</p>';
+        }
+
+        async function listFilesInFolder() {
+            fileListContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full">Đang tải file...</p>';
+            let response;
+            try {
+                // Thêm mimeType vào trường 'fields' để lấy thông tin loại file
+                response = await gapi.client.drive.files.list({
+                    'q': `'${FOLDER_ID}' in parents and trashed=false`,
+                    'fields': 'files(id, name, mimeType)',
+                });
+            } catch (err) {
+                fileListContainer.innerHTML = `<p class="text-red-500 col-span-full">Đã xảy ra lỗi: ${JSON.stringify(err)}</p>`;
+                return;
+            }
+            
+            const files = response.result.files;
+            if (!files || files.length == 0) {
+                fileListContainer.innerHTML = '<p class="text-gray-500 col-span-full">Không tìm thấy file nào trong thư mục.</p>';
+                return;
+            }
+
+            fileListContainer.innerHTML = '';
+            files.forEach(file => {
+                const fileWrapper = document.createElement('div');
+                fileWrapper.className = 'flex flex-col items-center p-2 border rounded-lg bg-gray-100';
+
+                const fileTitle = document.createElement('p');
+                fileTitle.className = 'mt-2 text-center text-sm font-medium break-words w-full px-2';
+                fileTitle.textContent = file.name;
+
+                if (file.mimeType.startsWith('image/') || file.mimeType.startsWith('video/')) {
+                    // Gọi hàm để lấy và hiển thị nội dung file
+                    fetchAndDisplayFile(file.id, file.mimeType, fileWrapper);
+                } else {
+                    const icon = document.createElement('p');
+                    icon.textContent = '📁';
+                    icon.className = 'text-4xl';
+                    fileWrapper.appendChild(icon);
+                }
+
+                fileWrapper.appendChild(fileTitle);
+                fileListContainer.appendChild(fileWrapper);
+            });
+        }
+
+        async function fetchAndDisplayFile(fileId, mimeType, containerElement) {
+            const accessToken = gapi.client.getToken().access_token;
+            try {
+                const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
+                const fileBlob = await response.blob();
+                const fileUrl = URL.createObjectURL(fileBlob);
+
+                if (mimeType.startsWith('image/')) {
+                    const imgElement = document.createElement('img');
+                    imgElement.src = fileUrl;
+                    imgElement.className = 'w-full h-40 object-cover rounded-lg mb-2';
+                    containerElement.insertBefore(imgElement, containerElement.firstChild);
+                } else if (mimeType.startsWith('video/')) {
+                    const videoElement = document.createElement('video');
+                    videoElement.src = fileUrl;
+                    videoElement.controls = true;
+                    videoElement.className = 'w-full h-40 object-cover rounded-lg mb-2';
+                    containerElement.insertBefore(videoElement, containerElement.firstChild);
+                }
+
+            } catch (err) {
+                console.error('Lỗi khi tải file:', err);
+                const errorText = document.createElement('p');
+                errorText.textContent = 'Lỗi tải nội dung';
+                errorText.className = 'text-red-500 text-sm text-center';
+                containerElement.insertBefore(errorText, containerElement.firstChild);
+            }
+        }
+
+        // Gán sự kiện cho các nút
+        authorizeButton.addEventListener('click', handleAuthClick);
+        signoutButton.addEventListener('click', handleSignoutClick);
+        listFilesButton.addEventListener('click', listFilesInFolder);
+
+    </script>
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registered! Scope:', registration.scope);
+        })
+        .catch(err => {
+          console.log('Service Worker registration failed:', err);
+        });
+    });
+  }
+</script>
+</body>
+</html>
