@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive API Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+    <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow-xl">
+        <h1 class="text-2xl font-bold mb-4 text-center">Thử nghiệm Google Drive API</h1>
+        
+        <div id="auth-status" class="mb-4 text-center p-2 rounded hidden"></div>
+
+        <div class="flex flex-col space-y-4 mb-6">
+            <button id="authorize_button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Đăng nhập
+            </button>
+            <button id="list_files_button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Lấy danh sách file trong thư mục
+            </button>
+            <button id="signout_button" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Đăng xuất
+            </button>
+        </div>
+
+        <div id="content" class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h2 class="text-lg font-semibold mb-2">Kết quả:</h2>
+            <ul id="file_list" class="list-disc list-inside space-y-1">
+                <li class="text-gray-500">Bấm nút "Lấy danh sách file..." để xem kết quả.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
+    <script>
+        // === VUI LÒNG THAY THẾ CÁC GIÁ TRỊ SAU BẰNG THÔNG TIN CỦA BẠN ===
+        const CLIENT_ID = '503323653505-ks8cpnfjkaj9d7ms0fbvtbjh4t11pm27.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyB4B2blbEwCXBI-DXkh4-CyongurEnWjws';
+        const FOLDER_ID = '11y3hrv57rau2IEywB3SEG2Pga7T93BJl';
+        // === HẾT THÔNG TIN CẦN THAY THẾ ===
+
+        // Scope để truy cập siêu dữ liệu (metadata) của file trên Drive
+        const SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
+
+        let tokenClient;
+        const authorizeButton = document.getElementById('authorize_button');
+        const signoutButton = document.getElementById('signout_button');
+        const listFilesButton = document.getElementById('list_files_button');
+        const authStatusDiv = document.getElementById('auth-status');
+        const fileListElement = document.getElementById('file_list');
+
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            authorizeButton.style.display = 'block';
+            listFilesButton.style.display = 'block';
+            signoutButton.style.display = 'block';
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // Sẽ được gọi khi có token
+            });
+        }
+
+        function handleAuthClick() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                updateAuthStatus(true);
+            };
+            
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+
+        function handleSignoutClick() {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken(null);
+                updateAuthStatus(false);
+            }
+        }
+
+        function updateAuthStatus(isSignedIn) {
+            if (isSignedIn) {
+                authStatusDiv.textContent = 'Đã đăng nhập thành công.';
+                authStatusDiv.className = 'mb-4 text-center p-2 rounded bg-green-200 text-green-800 block';
+            } else {
+                authStatusDiv.textContent = 'Đã đăng xuất.';
+                authStatusDiv.className = 'mb-4 text-center p-2 rounded bg-red-200 text-red-800 block';
+            }
+            fileListElement.innerHTML = '<li class="text-gray-500">Bấm nút "Lấy danh sách file..." để xem kết quả.</li>';
+        }
+
+        async function listFilesInFolder() {
+            let response;
+            try {
+                // Sử dụng 'q' để lọc file chỉ trong thư mục cụ thể
+                response = await gapi.client.drive.files.list({
+                    'q': `'${FOLDER_ID}' in parents and trashed=false`,
+                    'fields': 'files(id, name)',
+                });
+            } catch (err) {
+                fileListElement.innerHTML = `<li class="text-red-500">Đã xảy ra lỗi: ${JSON.stringify(err)}</li>`;
+                return;
+            }
+            
+            const files = response.result.files;
+            if (!files || files.length == 0) {
+                fileListElement.innerHTML = '<li class="text-gray-500">Không tìm thấy file nào trong thư mục.</li>';
+                return;
+            }
+
+            fileListElement.innerHTML = '';
+            files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.textContent = file.name;
+                fileListElement.appendChild(listItem);
+            });
+        }
+
+        // Gán sự kiện cho các nút
+        authorizeButton.addEventListener('click', handleAuthClick);
+        signoutButton.addEventListener('click', handleSignoutClick);
+        listFilesButton.addEventListener('click', listFilesInFolder);
+
+    </script>
+</body>
+</html>

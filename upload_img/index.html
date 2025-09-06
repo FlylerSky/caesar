@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Photo Uploader</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">Tải ảnh lên Google Drive</h1>
+
+        <div id="auth-section" class="flex flex-col items-center mb-6">
+            <button id="signInBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Đăng nhập bằng Google
+            </button>
+            <p id="userName" class="mt-2 text-gray-700 hidden"></p>
+        </div>
+
+        <div id="upload-section" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hidden">
+            <p class="text-gray-500 mb-4">Kéo và thả ảnh vào đây hoặc</p>
+            <label class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+                Chọn ảnh
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+            </label>
+        </div>
+
+        <h2 class="text-xl font-semibold mt-8 mb-4">Ảnh trong thư mục IMG_TEST</h2>
+        <div id="image-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            </div>
+    </div>
+    
+    <script src="./app.js"></script>
+</body>
+</html>

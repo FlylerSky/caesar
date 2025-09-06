@@ -1,0 +1,12 @@
+GIỚI THIỆU:
+Nhóm: System One MDA (SOM)
+----------
+Nguyên tắc cơ bản: Các sản phẩm của SOM chỉ sử dụng các công nghệ HTML, CSS (Tailwind CSS), JavaScript( Có thể dùng thêm thư viện JS, chỉ dùng các thư viện hỗ trợ qua link hoặc CDN để tối ưu mà không cần cài đặt), Github, Vercel, Firebase, Cloundinary, Google Drive
+SOM là một nhóm nhỏ 3 người: FlylerSky, Serly, Derlen LiA | Nhóm sử dụng thiết bị code là điện thoại android và tận dụng những công nghệ Free để tối ưu
+--------
+Các sản phẩm dự kiến:
+1. One Account (Tài khoản để người dùng có thể truy cập vào tất cả những sản phẩm mà SOM làm ra mà không cần tạo từng tài khoản riêng lẻ, One Account để người dùng quản lí tài khoản của mình)
+2. One Media (Nền tảng mạng xã hội giải trí)
+3. One Chat (Nền tảng nhắn tin trực tuyến)
+4. One Mail (Nền tảng thư điện tử phục vụ cho một vài tác vụ nội bộ sản phẩm, khuyến khích dùng One Mail để tiện quản lí)
+5. One Checker (Nền tảng xác minh chữ kí số, Khi đội admin làm việc với người dùng ở các nền tảng không thuộc SOM ví dụ như khi đội admin gửi Gmail cho người dùng sẽ có kèm chữ kí số để người dùng nhận biết đó đúng là đội admin của SOM và người dùng Copy chữ kí số đấy vào One Checker kiểm tra xem admin có gửi thư đó không)
